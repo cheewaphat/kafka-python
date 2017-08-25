@@ -216,6 +216,7 @@ class KafkaProtocol(object):
 
     @classmethod
     def decode_message_set(cls, messages):
+        messages = messages.as_message_set()
         for offset, _, message in messages:
             if isinstance(message, kafka.protocol.message.Message) and message.is_compressed():
                 inner_messages = message.decompress()

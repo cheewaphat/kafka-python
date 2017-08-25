@@ -355,7 +355,7 @@ class Fetcher(six.Iterator):
 
         Raises:
             OffsetOutOfRangeError: if no subscription offset_reset_strategy
-            InvalidMessageError: if message crc validation fails (check_crcs
+            CorruptRecordException: if message crc validation fails (check_crcs
                 must be set to True)
             RecordTooLargeError: if a message is larger than the currently
                 configured max_partition_fetch_bytes
@@ -523,77 +523,26 @@ class Fetcher(six.Iterator):
                           " the current position is %d", tp, part.fetch_offset,
                           position)
 
-    def _unpack_message_set(self, tp, messages):
+    def _unpack_message_set(self, tp, records):
         try:
-            for offset, size, msg in messages:
-                if self.config['check_crcs'] and not msg.validate_crc():
-                    raise Errors.InvalidMessageError(msg)
-                elif msg.is_compressed():
-                    # If relative offset is used, we need to decompress the entire message first to compute
-                    # the absolute offset.
-                    inner_mset = msg.decompress()
 
-                    # There should only ever be a single layer of compression
-                    if inner_mset[0][-1].is_compressed():
-                        log.warning('MessageSet at %s offset %d appears '
-                                    ' double-compressed. This should not'
-                                    ' happen -- check your producers!',
-                                    tp, offset)
-                        if self.config['skip_double_compressed_messages']:
-                            log.warning('Skipping double-compressed message at'
-                                        ' %s %d', tp, offset)
-                            continue
-
-                    if msg.magic > 0:
-                        last_offset, _, _ = inner_mset[-1]
-                        absolute_base_offset = offset - last_offset
-                    else:
-                        absolute_base_offset = -1
-
-                    for inner_offset, inner_size, inner_msg in inner_mset:
-                        if msg.magic > 0:
-                            # When magic value is greater than 0, the timestamp
-                            # of a compressed message depends on the
-                            # typestamp type of the wrapper message:
-
-                            if msg.timestamp_type == 0:  # CREATE_TIME (0)
-                                inner_timestamp = inner_msg.timestamp
-
-                            elif msg.timestamp_type == 1:  # LOG_APPEND_TIME (1)
-                                inner_timestamp = msg.timestamp
-
-                            else:
-                                raise ValueError('Unknown timestamp type: {0}'.format(msg.timestamp_type))
-                        else:
-                            inner_timestamp = msg.timestamp
-
-                        if absolute_base_offset >= 0:
-                            inner_offset += absolute_base_offset
-
-                        key = self._deserialize(
-                            self.config['key_deserializer'],
-                            tp.topic, inner_msg.key)
-                        value = self._deserialize(
-                            self.config['value_deserializer'],
-                            tp.topic, inner_msg.value)
-                        yield ConsumerRecord(tp.topic, tp.partition, inner_offset,
-                                             inner_timestamp, msg.timestamp_type,
-                                             key, value, inner_msg.crc,
-                                             len(inner_msg.key) if inner_msg.key is not None else -1,
-                                             len(inner_msg.value) if inner_msg.value is not None else -1)
-
-                else:
+            batch = records.next_batch()
+            while batch is not None:
+                for record in batch:
+                    key_size = len(record.key) if record.key is not None else -1
+                    value_size = len(record.value) if record.value is not None else -1
                     key = self._deserialize(
                         self.config['key_deserializer'],
-                        tp.topic, msg.key)
+                        tp.topic, record.key)
                     value = self._deserialize(
                         self.config['value_deserializer'],
-                        tp.topic, msg.value)
-                    yield ConsumerRecord(tp.topic, tp.partition, offset,
-                                         msg.timestamp, msg.timestamp_type,
-                                         key, value, msg.crc,
-                                         len(msg.key) if msg.key is not None else -1,
-                                         len(msg.value) if msg.value is not None else -1)
+                        tp.topic, record.value)
+                    yield ConsumerRecord(
+                        tp.topic, tp.partition, record.offset, record.timestamp,
+                        record.timestamp_type, key, value, record.checksum,
+                        key_size, value_size)
+
+                batch = records.next_batch()
 
         # If unpacking raises StopIteration, it is erroneously
         # caught by the generator. We want all exceptions to be raised
@@ -848,7 +797,8 @@ class Fetcher(six.Iterator):
         random.shuffle(response.topics)
         for topic, partitions in response.topics:
             random.shuffle(partitions)
-            for partition, error_code, highwater, messages in partitions:
+            for partition_data in partitions:
+                partition, error_code, highwater = partition_data[:3]
                 tp = TopicPartition(topic, partition)
                 error_type = Errors.for_code(error_code)
                 if not self._subscriptions.is_fetchable(tp):
@@ -859,6 +809,7 @@ class Fetcher(six.Iterator):
 
                 elif error_type is Errors.NoError:
                     self._subscriptions.assignment[tp].highwater = highwater
+                    records = partition_data[-1]
 
                     # we are interested in this fetch only if the beginning
                     # offset (of the *request*) matches the current consumed position
@@ -873,29 +824,29 @@ class Fetcher(six.Iterator):
                                   position)
                         continue
 
-                    num_bytes = 0
-                    partial = None
-                    if messages and isinstance(messages[-1][-1], PartialMessage):
-                        partial = messages.pop()
-
-                    if messages:
-                        log.debug("Adding fetched record for partition %s with"
-                                  " offset %d to buffered record list", tp,
-                                  position)
-                        unpacked = list(self._unpack_message_set(tp, messages))
-                        self._records.append(self.PartitionRecords(fetch_offset, tp, unpacked))
-                        last_offset, _, _ = messages[-1]
-                        self._sensors.records_fetch_lag.record(highwater - last_offset)
-                        num_bytes = sum(msg[1] for msg in messages)
-                    elif partial:
+                    if not records.has_next() and records.size_in_bytes() > 0:
                         # we did not read a single message from a non-empty
                         # buffer because that message's size is larger than
                         # fetch size, in this case record this exception
                         self._record_too_large_partitions[tp] = fetch_offset
 
-                    self._sensors.record_topic_fetch_metrics(topic, num_bytes, len(messages))
+                    num_bytes = 0
+                    message_count = 0
+
+                    if records.has_next():
+                        log.debug("Adding fetched record for partition %s with"
+                                  " offset %d to buffered record list", tp,
+                                  position)
+                        unpacked = list(self._unpack_message_set(tp, records))
+                        self._records.append(self.PartitionRecords(fetch_offset, tp, unpacked))
+                        last_offset = unpacked[-1].offset
+                        self._sensors.records_fetch_lag.record(highwater - last_offset)
+                        num_bytes = records.valid_bytes()
+                        message_count = len(unpacked)
+
+                    self._sensors.record_topic_fetch_metrics(topic, num_bytes, message_count)
                     total_bytes += num_bytes
-                    total_count += len(messages)
+                    total_count += message_count
                 elif error_type in (Errors.NotLeaderForPartitionError,
                                     Errors.UnknownTopicOrPartitionError):
                     self._client.cluster.request_update()

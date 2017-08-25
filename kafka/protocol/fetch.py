@@ -1,8 +1,21 @@
 from __future__ import absolute_import
 
+from kafka.record import MemoryRecords
 from .api import Request, Response
 from .message import MessageSet
-from .types import Array, Int8, Int16, Int32, Int64, Schema, String
+from .types import Array, Int8, Int16, Int32, Int64, Schema, String, Bytes
+
+
+class Records(Bytes):
+
+    @classmethod
+    def encode(cls, records):
+        return MessageSet.encode(records)
+
+    @classmethod
+    def decode(cls, buffer):
+        data_bytes = super(cls, Records).decode(buffer)
+        return MemoryRecords(data_bytes)
 
 
 class FetchResponse_v0(Response):
@@ -15,7 +28,7 @@ class FetchResponse_v0(Response):
                 ('partition', Int32),
                 ('error_code', Int16),
                 ('highwater_offset', Int64),
-                ('message_set', MessageSet)))))
+                ('message_set', Records)))))
     )
 
 
@@ -30,7 +43,7 @@ class FetchResponse_v1(Response):
                 ('partition', Int32),
                 ('error_code', Int16),
                 ('highwater_offset', Int64),
-                ('message_set', MessageSet)))))
+                ('message_set', Records)))))
     )
 
 
@@ -61,7 +74,7 @@ class FetchResponse_v4(Response):
                 ('aborted_transactions', Array(
                     ('producer_id', Int64),
                     ('first_offset', Int64))),
-                ('message_set', MessageSet)))))
+                ('message_set', Records)))))
     )
 
 
@@ -81,7 +94,7 @@ class FetchResponse_v5(Response):
                 ('aborted_transactions', Array(
                     ('producer_id', Int64),
                     ('first_offset', Int64))),
-                ('message_set', MessageSet)))))
+                ('message_set', Records)))))
     )
 
 

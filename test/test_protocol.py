@@ -266,7 +266,8 @@ def test_decode_fetch_response_partial():
     topic, partitions = resp.topics[0]
     assert topic == 'foobar'
     assert len(partitions) == 2
-    m1 = partitions[0][3]
+
+    m1 = partitions[0][3].as_message_set()
     assert len(m1) == 2
     assert m1[1] == (None, None, PartialMessage())
 
