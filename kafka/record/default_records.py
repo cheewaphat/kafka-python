@@ -229,7 +229,7 @@ class DefaultRecordBatch(ABCRecordBatch):
         if pos - start_pos != length:
             CorruptRecordException(
                 "Invalid record size: expected to read {} bytes in record "
-                "payload, but instead read ".format(length, pos - start_pos))
+                "payload, but instead read {}".format(length, pos - start_pos))
         self._pos = pos
 
         return DefaultRecord(
