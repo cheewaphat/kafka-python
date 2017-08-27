@@ -24,6 +24,7 @@ import struct
 from kafka.errors import CorruptRecordException
 from kafka.protocol.message import MessageSet
 from .abc import ABCRecords
+from .default_records import DefaultRecordBatch
 from .legacy_records import LegacyRecordBatch
 from .util import make_slice
 
@@ -68,7 +69,7 @@ class MemoryRecords(ABCRecords):
         self._next_slice += 1
         magic, = struct.unpack_from(">b", buffer, self.MAGIC_OFFSET)
         if magic >= 2:
-            raise NotImplementedError("V2 not supported yet")
+            return DefaultRecordBatch(buffer)
         else:
             return LegacyRecordBatch(buffer)
 

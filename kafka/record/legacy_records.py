@@ -14,7 +14,6 @@ class LegacyRecordBatch(ABCRecordBatch):
         bytes_to_read = len(buffer)
         buffer = io.BytesIO(buffer)
         messages = MessageSet.decode(buffer, bytes_to_read=bytes_to_read)
-        print(messages)
         assert len(messages) == 1
         self._message = messages[0]
 

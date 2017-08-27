@@ -61,6 +61,24 @@ def test_memory_records_v2():
     assert records.size_in_bytes() == 222
     assert records.valid_bytes() == 218
 
+    assert records.has_next() is True
+    batch = records.next_batch()
+    recs = list(batch)
+    assert len(recs) == 1
+    assert recs[0].value == b"123"
+    assert recs[0].key is None
+    assert recs[0].timestamp == 1503229838908
+    assert recs[0].timestamp_type == 0
+    assert recs[0].checksum is None
+    assert recs[0].headers == []
+
+    assert records.next_batch() is not None
+    assert records.next_batch() is not None
+
+    assert records.has_next() is False
+    assert records.next_batch() is None
+    assert records.next_batch() is None
+
 
 def test_memory_records_v1():
     data_bytes = b"".join(record_batch_data_v1) + b"\x00" * 4
