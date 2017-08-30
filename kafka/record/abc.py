@@ -48,7 +48,29 @@ class ABCRecordBatchBuilder(object):
 
     @abc.abstractmethod
     def append(self, offset, timestamp, key, value, headers):
-        """ Writes record to internal buffer
+        """ Writes record to internal buffer.
+
+        Arguments:
+            offset (int): Relative offset of record, starting from 0
+            timestamp (int): Timestamp in milliseconds since beginning of the
+                epoch (midnight Jan 1, 1970 (UTC))
+            key (bytes or None): Key of the record
+            value (bytes or None): Value of the record
+            headers (List[Tuple[str, bytes]]): Headers of the record. Header
+                keys can not be ``None``.
+
+        Returns:
+            bool: If message was successfully written. False means that there's
+                no more space for the record.
+        """
+
+    @abc.abstractmethod
+    def build(self):
+        """ Close for append, compress if needed, write size and header and
+            return a ready to send bytes object.
+
+            Return:
+                bytes: finished batch, ready to send.
         """
 
 

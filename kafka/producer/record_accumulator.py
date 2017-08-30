@@ -7,8 +7,7 @@ import threading
 import time
 
 from .. import errors as Errors
-from ..protocol.message import Message, MessageSet
-from .buffer import MessageSetBuffer, SimpleBufferPool
+from .buffer import SimpleBufferPool, MessageSetBuffer
 from .future import FutureRecordMetadata, FutureProduceResult
 from ..structs import TopicPartition
 
@@ -35,9 +34,8 @@ class AtomicInteger(object):
         return self._val
 
 
-class RecordBatch(object):
-    def __init__(self, tp, records, message_version=0):
-        self.record_count = 0
+class ProducerBatch(object):
+    def __init__(self, tp, records):
         self.max_record_size = 0
         now = time.time()
         self.created = now
@@ -46,35 +44,34 @@ class RecordBatch(object):
         self.last_attempt = now
         self.last_append = now
         self.records = records
-        self.message_version = message_version
         self.topic_partition = tp
         self.produce_future = FutureProduceResult(tp)
         self._retry = False
 
+    @property
+    def record_count(self):
+        return self.records.record_count
+
     def try_append(self, timestamp_ms, key, value):
-        if not self.records.has_room_for(key, value):
+        if not self.records.has_room_for(timestamp_ms, key, value, []):
             return None
 
-        if self.message_version == 0:
-            msg = Message(value, key=key, magic=self.message_version)
-        else:
-            msg = Message(value, key=key, magic=self.message_version,
-                          timestamp=timestamp_ms)
-        record_size = self.records.append(self.record_count, msg)
-        checksum = msg.crc  # crc is recalculated during records.append()
+        offset = self.record_count
+        checksum, record_size = self.records.append(
+            timestamp_ms, key, value, [])
+
         self.max_record_size = max(self.max_record_size, record_size)
         self.last_append = time.time()
-        future = FutureRecordMetadata(self.produce_future, self.record_count,
+        future = FutureRecordMetadata(self.produce_future, offset,
                                       timestamp_ms, checksum,
                                       len(key) if key is not None else -1,
                                       len(value) if value is not None else -1)
-        self.record_count += 1
         return future
 
     def done(self, base_offset=None, timestamp_ms=None, exception=None):
         log.debug("Produced messages to topic-partition %s with base offset"
                   " %s and error %s.", self.topic_partition, base_offset,
-                  exception) # trace
+                  exception)  # trace
         if self.produce_future.is_done:
             log.warning('Batch is already closed -- ignoring batch.done()')
             return
@@ -124,7 +121,7 @@ class RecordBatch(object):
         self._retry = True
 
     def __str__(self):
-        return 'RecordBatch(topic_partition=%s, record_count=%d)' % (
+        return 'ProducerBatch(topic_partition=%s, record_count=%d)' % (
             self.topic_partition, self.record_count)
 
 
@@ -183,19 +180,20 @@ class RecordAccumulator(object):
         self._closed = False
         self._flushes_in_progress = AtomicInteger()
         self._appends_in_progress = AtomicInteger()
-        self._batches = collections.defaultdict(collections.deque) # TopicPartition: [RecordBatch]
+        self._batches = collections.defaultdict(collections.deque) # TopicPartition: [ProducerBatch]
         self._tp_locks = {None: threading.Lock()} # TopicPartition: Lock, plus a lock to add entries
         self._free = SimpleBufferPool(self.config['buffer_memory'],
                                       self.config['batch_size'],
                                       metrics=self.config['metrics'],
                                       metric_group_prefix=self.config['metric_group_prefix'])
-        self._incomplete = IncompleteRecordBatches()
+        self._incomplete = IncompleteProducerBatches()
         # The following variables should only be accessed by the sender thread,
         # so we don't need to protect them w/ locking.
         self.muted = set()
         self._drain_index = 0
 
-    def append(self, tp, timestamp_ms, key, value, max_time_to_block_ms):
+    def append(self, tp, timestamp_ms, key, value, max_time_to_block_ms,
+               estimated_size=0):
         """Add a record to the accumulator, return the append result.
 
         The append result will contain the future metadata, and flag for
@@ -234,15 +232,7 @@ class RecordAccumulator(object):
                         batch_is_full = len(dq) > 1 or last.records.is_full()
                         return future, batch_is_full, False
 
-            # we don't have an in-progress record batch try to allocate a new batch
-            message_size = MessageSet.HEADER_SIZE + Message.HEADER_SIZE
-            if key is not None:
-                message_size += len(key)
-            if value is not None:
-                message_size += len(value)
-            assert message_size <= self.config['buffer_memory'], 'message too big'
-
-            size = max(self.config['batch_size'], message_size)
+            size = max(self.config['batch_size'], estimated_size)
             log.debug("Allocating a new %d byte message buffer for %s", size, tp) # trace
             buf = self._free.allocate(size, max_time_to_block_ms)
             with self._tp_locks[tp]:
@@ -263,7 +253,8 @@ class RecordAccumulator(object):
                 records = MessageSetBuffer(buf, self.config['batch_size'],
                                            self.config['compression_type'],
                                            self.config['message_version'])
-                batch = RecordBatch(tp, records, self.config['message_version'])
+
+                batch = ProducerBatch(tp, records)
                 future = batch.try_append(timestamp_ms, key, value)
                 if not future:
                     raise Exception()
@@ -285,7 +276,7 @@ class RecordAccumulator(object):
             cluster (ClusterMetadata): current metadata for kafka cluster
 
         Returns:
-            list of RecordBatch that were expired
+            list of ProducerBatch that were expired
         """
         expired_batches = []
         to_remove = []
@@ -449,7 +440,7 @@ class RecordAccumulator(object):
             max_size (int): maximum number of bytes to drain
 
         Returns:
-            dict: {node_id: list of RecordBatch} with total size less than the
+            dict: {node_id: list of ProducerBatch} with total size less than the
                 requested max_size.
         """
         if not nodes:
@@ -571,8 +562,8 @@ class RecordAccumulator(object):
         self._closed = True
 
 
-class IncompleteRecordBatches(object):
-    """A threadsafe helper class to hold RecordBatches that haven't been ack'd yet"""
+class IncompleteProducerBatches(object):
+    """A threadsafe helper class to hold ProducerBatches that haven't been ack'd yet"""
 
     def __init__(self):
         self._incomplete = set()

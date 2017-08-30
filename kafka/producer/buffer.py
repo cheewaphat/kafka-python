@@ -5,14 +5,10 @@ import io
 import threading
 import time
 
-from ..codec import (has_gzip, has_snappy, has_lz4,
-                     gzip_encode, snappy_encode,
-                     lz4_encode, lz4_encode_old_kafka)
-from .. import errors as Errors
 from ..metrics.stats import Rate
-from ..protocol.types import Int32, Int64
-from ..protocol.message import MessageSet, Message
 
+from ..record.default_records import DefaultRecordBatchBuilder
+from ..record.legacy_records import LegacyRecordBatchBuilder
 
 
 class MessageSetBuffer(object):
@@ -27,68 +23,63 @@ class MessageSetBuffer(object):
             publishing. Default: None.
     """
     _COMPRESSORS = {
-        'gzip': (has_gzip, gzip_encode, Message.CODEC_GZIP),
-        'snappy': (has_snappy, snappy_encode, Message.CODEC_SNAPPY),
-        'lz4': (has_lz4, lz4_encode, Message.CODEC_LZ4),
-        'lz4-old-kafka': (has_lz4, lz4_encode_old_kafka, Message.CODEC_LZ4),
+        'gzip': DefaultRecordBatchBuilder.CODEC_GZIP,
+        'snappy': DefaultRecordBatchBuilder.CODEC_SNAPPY,
+        'lz4': DefaultRecordBatchBuilder.CODEC_LZ4,
+        None: DefaultRecordBatchBuilder.CODEC_NONE
     }
+
     def __init__(self, buf, batch_size, compression_type=None, message_version=0):
-        if compression_type is not None:
-            assert compression_type in self._COMPRESSORS, 'Unrecognized compression type'
+        compression_type = self._COMPRESSORS.get(compression_type)
 
-            # Kafka 0.8/0.9 had a quirky lz4...
-            if compression_type == 'lz4' and message_version == 0:
-                compression_type = 'lz4-old-kafka'
-
-            checker, encoder, attributes = self._COMPRESSORS[compression_type]
-            assert checker(), 'Compression Libraries Not Found'
-            self._compressor = encoder
-            self._compression_attributes = attributes
+        if message_version >= 2:
+            self._builder = DefaultRecordBatchBuilder(
+                magic=message_version, compression_type=compression_type,
+                is_transactional=False, producer_id=-1, producer_epoch=-1,
+                base_sequence=-1, batch_size=batch_size, buffer=buf)
         else:
-            self._compressor = None
-            self._compression_attributes = None
+            self._builder = LegacyRecordBatchBuilder(
+                magic=message_version, compression_type=compression_type,
+                batch_size=batch_size, buffer=buf)
 
         self._message_version = message_version
         self._buffer = buf
-        # Init MessageSetSize to 0 -- update on close
-        self._buffer.seek(0)
-        self._buffer.write(Int32.encode(0))
         self._batch_size = batch_size
         self._closed = False
-        self._messages = 0
-        self._bytes_written = 4 # Int32 header is 4 bytes
+        self._bytes_written = self._buffer.tell()
         self._final_size = None
+        self._messages = 0
 
-    def append(self, offset, message):
-        """Append a Message to the MessageSet.
+    @property
+    def record_count(self):
+        return self._messages
 
-        Arguments:
-            offset (int): offset of the message
-            message (Message or bytes): message struct or encoded bytes
+    def append(self, timestamp, key, value, headers):
+        """Append a message to the buffer.
 
-        Returns: bytes written
+        Returns (int, int): checksum and bytes written
         """
-        if isinstance(message, Message):
-            encoded = message.encode()
-        else:
-            encoded = bytes(message)
-        msg = Int64.encode(offset) + Int32.encode(len(encoded)) + encoded
-        self._buffer.write(msg)
-        self._messages += 1
-        self._bytes_written += len(msg)
-        return len(msg)
+        offset = self._messages
+        checksum, actual_size = self._builder.append(
+            offset, timestamp, key, value, headers)
+        assert actual_size > 0
 
-    def has_room_for(self, key, value):
-        if self._closed:
+        self._messages += 1
+        self._bytes_written += actual_size
+        return checksum, actual_size
+
+    def has_room_for(self, timestamp, key, value, headers):
+        if self.is_full():
             return False
+
+        # We always allow at least one record to be appended
         if not self._messages:
             return True
-        needed_bytes = MessageSet.HEADER_SIZE + Message.HEADER_SIZE
-        if key is not None:
-            needed_bytes += len(key)
-        if value is not None:
-            needed_bytes += len(value)
-        return self._buffer.tell() + needed_bytes < self._batch_size
+
+        record_size = self._builder.size_in_bytes(
+            self._messages, timestamp, key, value, headers)
+
+        return self._buffer.tell() + record_size < self._batch_size
 
     def is_full(self):
         if self._closed:
@@ -102,24 +93,9 @@ class MessageSetBuffer(object):
         # otherwise compressed messages may be double-compressed
         # see Issue 718
         if not self._closed:
-            if self._compressor:
-                # TODO: avoid copies with bytearray / memoryview
-                uncompressed_size = self._buffer.tell()
-                self._buffer.seek(4)
-                msg = Message(self._compressor(self._buffer.read(uncompressed_size - 4)),
-                              attributes=self._compression_attributes,
-                              magic=self._message_version)
-                encoded = msg.encode()
-                self._buffer.seek(4)
-                self._buffer.write(Int64.encode(0)) # offset 0 for wrapper msg
-                self._buffer.write(Int32.encode(len(encoded)))
-                self._buffer.write(encoded)
-
-            # Update the message set size (less the 4 byte header),
-            # and return with buffer ready for full read()
+            self._builder.build()
+            self._buffer.seek(0, io.SEEK_END)
             self._final_size = self._buffer.tell()
-            self._buffer.seek(0)
-            self._buffer.write(Int32.encode(self._final_size - 4))
 
         self._buffer.seek(0)
         self._closed = True

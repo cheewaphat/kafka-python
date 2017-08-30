@@ -1,0 +1,56 @@
+import pytest
+from kafka.record.legacy_records import (
+    LegacyRecordBatch, LegacyRecordBatchBuilder
+)
+from kafka.protocol.message import Message
+
+
+@pytest.mark.parametrize("magic", [0, 1])
+def test_read_write_serde_v0_v1_no_compression(magic):
+    builder = LegacyRecordBatchBuilder(
+        magic=magic, compression_type=0,
+        batch_size=10100010)
+    builder.append(
+        0, timestamp=9999999, key=b"test", value=b"Super",
+        headers=[])
+    buffer = builder.build()
+
+    batch = LegacyRecordBatch(buffer.getvalue())
+    msgs = list(batch)
+    assert len(msgs) == 1
+    msg = msgs[0]
+
+    assert msg.offset == 0
+    assert msg.timestamp == (9999999 if magic else None)
+    assert msg.timestamp_type == (0 if magic else None)
+    assert msg.key == b"test"
+    assert msg.value == b"Super"
+    assert msg.checksum == (-2095076219 if magic else 278251978)
+
+
+@pytest.mark.parametrize("compression_type", [
+    Message.CODEC_GZIP,
+    Message.CODEC_SNAPPY,
+    Message.CODEC_LZ4
+])
+@pytest.mark.parametrize("magic", [0, 1])
+def test_read_write_serde_v0_v1_with_compression(compression_type, magic):
+    builder = LegacyRecordBatchBuilder(
+        magic=magic, compression_type=compression_type,
+        batch_size=10100010)
+    for offset in range(10):
+        builder.append(
+            offset, timestamp=9999999, key=b"test", value=b"Super",
+            headers=[])
+    buffer = builder.build()
+
+    batch = LegacyRecordBatch(buffer.getvalue())
+    msgs = list(batch)
+
+    for offset, msg in enumerate(msgs):
+        assert msg.offset == offset
+        assert msg.timestamp == (9999999 if magic else None)
+        assert msg.timestamp_type == (0 if magic else None)
+        assert msg.key == b"test"
+        assert msg.value == b"Super"
+        assert msg.checksum == (-2095076219 if magic else 278251978)

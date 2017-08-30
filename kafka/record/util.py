@@ -57,6 +57,19 @@ def encode_varint(num):
     return buf[:i + 1]
 
 
+def size_of_varint(num):
+    """ Number of bytes needed to encode an integer in variable-length format.
+    """
+    num = (num << 1) ^ (num >> 63)
+    res = 0
+    while True:
+        res += 1
+        num = num >> 7
+        if num == 0:
+            break
+    return res
+
+
 def decode_varint(buffer, pos=0):
     """ Decode an integer from a varint presentation. See
     https://developers.google.com/protocol-buffers/docs/encoding?csw=1#varints
@@ -87,7 +100,6 @@ def decode_varint(buffer, pos=0):
         # Max size of endcoded double is 10 bytes for unsigned values
         raise ValueError("Out of double range")
     # Normalize sign
-    print((value >> 1) ^ -(value & 1), i + 1)
     return (value >> 1) ^ -(value & 1), i + 1
 
 

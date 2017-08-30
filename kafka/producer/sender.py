@@ -292,7 +292,11 @@ class Sender(threading.Thread):
             buf = batch.records.buffer()
             produce_records_by_partition[topic][partition] = buf
 
-        if self.config['api_version'] >= (0, 10):
+        kwargs = {}
+        if self.config['api_version'] >= (0, 11):
+            version = 3
+            kwargs = dict(transactional_id=None)
+        elif self.config['api_version'] >= (0, 10):
             version = 2
         elif self.config['api_version'] == (0, 9):
             version = 1
@@ -303,7 +307,8 @@ class Sender(threading.Thread):
             timeout=timeout,
             topics=[(topic, list(partition_info.items()))
                     for topic, partition_info
-                    in six.iteritems(produce_records_by_partition)]
+                    in six.iteritems(produce_records_by_partition)],
+            **kwargs
         )
 
     def wakeup(self):

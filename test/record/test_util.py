@@ -60,6 +60,11 @@ def test_decode_varint(encoded, decoded):
     assert pos - 2 == len(encoded)
 
 
+@pytest.mark.parametrize("encoded, decoded", varint_data)
+def test_size_of_varint(encoded, decoded):
+    assert util.size_of_varint(decoded) == len(encoded)
+
+
 def test_crc32c():
     def make_crc(data):
         crc = util.calc_crc32c(data)

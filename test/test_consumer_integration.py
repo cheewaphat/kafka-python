@@ -26,6 +26,8 @@ from test.testutil import (
 
 
 class TestConsumerIntegration(KafkaIntegrationTestCase):
+    maxDiff = None
+
     @classmethod
     def setUpClass(cls):
         if not os.environ.get('KAFKA_VERSION'):

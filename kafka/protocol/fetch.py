@@ -9,8 +9,12 @@ from .types import Array, Int8, Int16, Int32, Int64, Schema, String, Bytes
 class Records(Bytes):
 
     @classmethod
-    def encode(cls, records):
-        return MessageSet.encode(records)
+    def encode(cls, buffer):
+        # For old producer, backward compat
+        if isinstance(buffer, list):
+            return MessageSet.encode(buffer)
+        buffer = buffer.getvalue()
+        return super(cls, Records).encode(buffer)
 
     @classmethod
     def decode(cls, buffer):
