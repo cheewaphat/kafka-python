@@ -7,6 +7,7 @@ import time
 
 from ..metrics.stats import Rate
 
+import kafka.errors as Errors
 from ..record.default_records import DefaultRecordBatchBuilder
 from ..record.legacy_records import LegacyRecordBatchBuilder
 
