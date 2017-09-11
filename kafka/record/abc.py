@@ -60,8 +60,15 @@ class ABCRecordBatchBuilder(object):
                 keys can not be ``None``.
 
         Returns:
-            bool: If message was successfully written. False means that there's
-                no more space for the record.
+            (bytes, int): Checksum of the written record (or None for v2 and
+                above) and size of the written record.
+        """
+
+    @abc.abstractmethod
+    def size_in_bytes(self, offset, timestamp, key, value, headers):
+        """ Return the expected size change on buffer (uncompressed) if we add
+            this message. This will account for varint size changes and give a
+            reliable size.
         """
 
     @abc.abstractmethod
@@ -70,7 +77,7 @@ class ABCRecordBatchBuilder(object):
             return a ready to send bytes object.
 
             Return:
-                bytes: finished batch, ready to send.
+                io.BytesIO: finished batch, ready to send.
         """
 
 
@@ -93,8 +100,7 @@ class ABCRecords(object):
     @abc.abstractmethod
     def __init__(self, buffer):
         """ Initialize with bytes-like object conforming to the buffer
-            interface, used by struct.unpack. Ie. `buffer` on Python2 or
-            `memoryview` on Python3 can be used, as well as `str` and `bytes`.
+            interface (ie. bytes, bytearray, memoryview etc.).
         """
 
     @abc.abstractmethod

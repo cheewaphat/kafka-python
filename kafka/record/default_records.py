@@ -339,7 +339,7 @@ class DefaultRecordBatchBuilder(DefaultRecordBase, ABCRecordBatchBuilder):
 
     def __init__(
             self, magic, compression_type, is_transactional,
-            producer_id, producer_epoch, base_sequence, batch_size,
+            producer_id, producer_epoch, base_sequence,
             buffer=None):
         assert magic >= 2
         self._magic = magic
@@ -359,7 +359,6 @@ class DefaultRecordBatchBuilder(DefaultRecordBase, ABCRecordBatchBuilder):
         # We can just move pointer out of bounds, null bytes will be inserted
         # on the missing part on first write
         self._buffer.seek(self.HEADER_STRUCT.size)
-        self._batch_size = batch_size
 
     def _get_attributes(self, include_compression_type=True):
         attrs = 0
@@ -419,11 +418,6 @@ class DefaultRecordBatchBuilder(DefaultRecordBase, ABCRecordBatchBuilder):
 
         message_len = message_buffer.tell()
         message_len_enc = encode_varint(message_len)
-
-        # Check if we can write this record
-        if self._buffer.tell() + message_len + len(message_len_enc) > \
-                self._batch_size:
-            return None, 0
 
         self._buffer.write(message_len_enc)
         message_enc = message_buffer.getvalue()

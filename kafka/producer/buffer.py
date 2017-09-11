@@ -37,11 +37,11 @@ class MessageSetBuffer(object):
             self._builder = DefaultRecordBatchBuilder(
                 magic=message_version, compression_type=compression_type,
                 is_transactional=False, producer_id=-1, producer_epoch=-1,
-                base_sequence=-1, batch_size=batch_size, buffer=buf)
+                base_sequence=-1, buffer=buf)
         else:
             self._builder = LegacyRecordBatchBuilder(
                 magic=message_version, compression_type=compression_type,
-                batch_size=batch_size, buffer=buf)
+                buffer=buf)
 
         self._message_version = message_version
         self._buffer = buf

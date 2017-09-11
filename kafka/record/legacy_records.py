@@ -147,10 +147,9 @@ class LegacyRecordBatchBuilder(ABCRecordBatchBuilder):
         "i"   # Value length
     )
 
-    def __init__(self, magic, compression_type, batch_size, buffer=None):
+    def __init__(self, magic, compression_type, buffer=None):
         self._magic = magic
         self._compression_type = compression_type
-        self._batch_size = batch_size
         self._buffer = buffer if buffer is not None else io.BytesIO()
 
     def append(self, offset, timestamp, key, value, headers=None):
