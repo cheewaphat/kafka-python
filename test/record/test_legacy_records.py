@@ -13,7 +13,7 @@ def test_read_write_serde_v0_v1_no_compression(magic):
         0, timestamp=9999999, key=b"test", value=b"Super")
     buffer = builder.build()
 
-    batch = LegacyRecordBatch(buffer.getvalue())
+    batch = LegacyRecordBatch(buffer.getvalue(), magic)
     msgs = list(batch)
     assert len(msgs) == 1
     msg = msgs[0]
@@ -23,7 +23,7 @@ def test_read_write_serde_v0_v1_no_compression(magic):
     assert msg.timestamp_type == (0 if magic else None)
     assert msg.key == b"test"
     assert msg.value == b"Super"
-    assert msg.checksum == (-2095076219 if magic else 278251978)
+    assert msg.checksum == (-2095076219 if magic else 278251978) & 0xffffffff
 
 
 @pytest.mark.parametrize("compression_type", [
@@ -40,7 +40,7 @@ def test_read_write_serde_v0_v1_with_compression(compression_type, magic):
             offset, timestamp=9999999, key=b"test", value=b"Super")
     buffer = builder.build()
 
-    batch = LegacyRecordBatch(buffer.getvalue())
+    batch = LegacyRecordBatch(buffer.getvalue(), magic)
     msgs = list(batch)
 
     for offset, msg in enumerate(msgs):
@@ -49,7 +49,7 @@ def test_read_write_serde_v0_v1_with_compression(compression_type, magic):
         assert msg.timestamp_type == (0 if magic else None)
         assert msg.key == b"test"
         assert msg.value == b"Super"
-        assert msg.checksum == (-2095076219 if magic else 278251978)
+        assert msg.checksum == (-2095076219 if magic else 278251978) & 0xffffffff
 
 
 @pytest.mark.parametrize("magic", [0, 1])

@@ -26,7 +26,6 @@ from kafka.protocol.message import MessageSet
 from .abc import ABCRecords
 from .default_records import DefaultRecordBatch
 from .legacy_records import LegacyRecordBatch
-from .util import make_slice
 
 
 class MemoryRecords(ABCRecords):
@@ -71,7 +70,7 @@ class MemoryRecords(ABCRecords):
         if magic >= 2:
             return DefaultRecordBatch(buffer)
         else:
-            return LegacyRecordBatch(buffer)
+            return LegacyRecordBatch(buffer, magic)
 
     @classmethod
     def _split_slices(cls, bytes_data):
@@ -100,7 +99,7 @@ class MemoryRecords(ABCRecords):
                 # Will be re-checked in Fetcher for remaining bytes
                 break
 
-            buffer = make_slice(bytes_data, next_slice, slice_end)
+            buffer = memoryview(bytes_data)[next_slice: slice_end]
             slices.append(buffer)
 
             next_slice = slice_end

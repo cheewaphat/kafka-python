@@ -3,66 +3,201 @@ import logging
 import struct
 
 from .abc import ABCRecord, ABCRecordBatch, ABCRecordBatchBuilder
+from .util import calc_crc32
 
 from kafka.codec import (
-    gzip_encode, snappy_encode, lz4_encode, lz4_encode_old_kafka
+    gzip_encode, snappy_encode, lz4_encode, lz4_encode_old_kafka,
+    gzip_decode, snappy_decode, lz4_decode, lz4_decode_old_kafka
 )
-from kafka.protocol.message import MessageSet, Message
 from kafka.protocol.types import Int64, Int32
+from kafka.protocol.message import Message
+from kafka.errors import CorruptRecordException
 
 log = logging.getLogger(__name__)
 
 
 class LegacyRecordBatch(ABCRecordBatch):
 
-    def __init__(self, buffer):
-        bytes_to_read = len(buffer)
-        buffer = io.BytesIO(buffer)
-        messages = MessageSet.decode(buffer, bytes_to_read=bytes_to_read)
-        assert len(messages) == 1
-        self._message = messages[0]
+    HEADER_STRUCT_V0 = struct.Struct(
+        ">q"  # BaseOffset => Int64
+        "i"  # Length => Int32
+        "I"  # CRC => Int32
+        "b"  # Magic => Int8
+        "b"  # Attributes => Int8
+    )
+    HEADER_STRUCT_V1 = struct.Struct(
+        ">q"  # BaseOffset => Int64
+        "i"  # Length => Int32
+        "I"  # CRC => Int32
+        "b"  # Magic => Int8
+        "b"  # Attributes => Int8
+        "q"  # timestamp => Int64
+    )
+
+    LOG_OVERHEAD = struct.calcsize(">qi")
+    MAGIC_OFFSET = struct.calcsize(">qiI")
+    KEY_OFFSET_V0 = HEADER_STRUCT_V0.size
+    KEY_OFFSET_V1 = HEADER_STRUCT_V1.size
+    KEY_LENGTH = VALUE_LENGTH = struct.calcsize(">i")
+
+    CODEC_MASK = 0x07
+    CODEC_GZIP = 0x01
+    CODEC_SNAPPY = 0x02
+    CODEC_LZ4 = 0x03
+    TIMESTAMP_TYPE_MASK = 0x08
+
+    LOG_APPEND_TIME = 1
+    CREATE_TIME = 0
+
+    def __init__(self, buffer, magic):
+        self._buffer = memoryview(buffer)
+        self._magic = magic
+
+        offset, length, crc, magic_, attrs, timestamp = self._read_header(0)
+        assert length == len(buffer) - self.LOG_OVERHEAD
+        assert magic == magic_
+
+        self._offset = offset
+        self._crc = crc
+        self._timestamp = timestamp
+        self._attributes = attrs
+        self._decompressed = False
+
+    @property
+    def timestamp_type(self):
+        """0 for CreateTime; 1 for LogAppendTime; None if unsupported.
+
+        Value is determined by broker; produced messages should always set to 0
+        Requires Kafka >= 0.10 / message version >= 1
+        """
+        if self._magic == 0:
+            return None
+        elif self._attributes & self.TIMESTAMP_TYPE_MASK:
+            return 1
+        else:
+            return 0
+
+    @property
+    def compression_type(self):
+        return self._attributes & self.CODEC_MASK
 
     def validate_crc(self):
-        return self._message[2].validate_crc()
+        crc = calc_crc32(self.buffer[self.MAGIC_OFFSET:])
+        return self._crc == crc
+
+    def _decompress(self, key_offset):
+        # Copy of `_read_key_value`, but uses memoryview
+        pos = key_offset
+        key_size = struct.unpack_from(">i", self._buffer, pos)[0]
+        pos += self.KEY_LENGTH
+        if key_size != -1:
+            pos += key_size
+        value_size = struct.unpack_from(">i", self._buffer, pos)[0]
+        pos += self.VALUE_LENGTH
+        if value_size == -1:
+            raise CorruptRecordException("Value of compressed message is None")
+        else:
+            data = self._buffer[pos:pos + value_size]
+
+        print(data.tobytes())
+
+        compression_type = self.compression_type
+        if compression_type == self.CODEC_GZIP:
+            uncompressed = gzip_decode(data)
+        elif compression_type == self.CODEC_SNAPPY:
+            uncompressed = snappy_decode(data.tobytes())
+        elif compression_type == self.CODEC_LZ4:
+            if self._magic == 0:
+                uncompressed = lz4_decode_old_kafka(data.tobytes())
+            else:
+                uncompressed = lz4_decode(data.tobytes())
+        print(uncompressed)
+        return uncompressed
+
+    def _read_header(self, pos):
+        if self._magic == 0:
+            offset, length, crc, magic_read, attrs = \
+                self.HEADER_STRUCT_V0.unpack_from(self._buffer, pos)
+            timestamp = None
+        else:
+            offset, length, crc, magic_read, attrs, timestamp = \
+                self.HEADER_STRUCT_V1.unpack_from(self._buffer, pos)
+        return offset, length, crc, magic_read, attrs, timestamp
+
+    def _read_all_headers(self):
+        pos = 0
+        msgs = []
+        buffer_len = len(self._buffer)
+        while pos < buffer_len:
+            header = self._read_header(pos)
+            msgs.append((header, pos))
+            pos += self.LOG_OVERHEAD + header[1]  # length
+        return msgs
+
+    def _read_key_value(self, pos):
+        key_size = struct.unpack_from(">i", self._buffer, pos)[0]
+        pos += self.KEY_LENGTH
+        if key_size == -1:
+            key = None
+        else:
+            key = self._buffer[pos:pos + key_size].tobytes()
+            pos += key_size
+
+        value_size = struct.unpack_from(">i", self._buffer, pos)[0]
+        pos += self.VALUE_LENGTH
+        if value_size == -1:
+            value = None
+        else:
+            value = self._buffer[pos:pos + value_size].tobytes()
+        return key, value
 
     def __iter__(self):
-        offset, size, msg = self._message
-        if msg.is_compressed():
+        if self._magic == 1:
+            key_offset = self.KEY_OFFSET_V1
+        else:
+            key_offset = self.KEY_OFFSET_V0
+        timestamp_type = self.timestamp_type
+
+        if self.compression_type:
+            # In case we will call iter again
+            if not self._decompressed:
+                self._buffer = memoryview(self._decompress(key_offset))
+                self._decompressed = True
+
             # If relative offset is used, we need to decompress the entire
             # message first to compute the absolute offset.
-            inner_mset = msg.decompress()
-            if msg.magic > 0:
-                last_offset, _, _ = inner_mset[-1]
-                absolute_base_offset = offset - last_offset
+            headers = self._read_all_headers()
+            if self._magic > 0:
+                msg_header, _ = headers[-1]
+                absolute_base_offset = self._offset - msg_header[0]
             else:
                 absolute_base_offset = -1
 
-            for inner_offset, inner_size, inner_msg in inner_mset:
+            for header, msg_pos in headers:
+                offset, _, crc, _, attrs, timestamp = header
                 # There should only ever be a single layer of compression
-                assert not inner_msg.is_compressed(), (
+                assert not attrs & self.CODEC_MASK, (
                     'MessageSet at offset %d appears double-compressed. This '
                     'should not happen -- check your producers!' % offset)
 
-                if msg.magic > 0:
-                    # When magic value is greater than 0, the timestamp
-                    # of a compressed message depends on the
-                    # typestamp type of the wrapper message:
-                    if msg.timestamp_type == 0:  # CREATE_TIME (0)
-                        inner_timestamp = inner_msg.timestamp
-                    else:  # LOG_APPEND_TIME (1)
-                        inner_timestamp = msg.timestamp
-                else:
-                    inner_timestamp = None
+                # When magic value is greater than 0, the timestamp
+                # of a compressed message depends on the
+                # typestamp type of the wrapper message:
+                if timestamp_type == self.LOG_APPEND_TIME:
+                    timestamp = self._timestamp
 
                 if absolute_base_offset >= 0:
-                    inner_offset += absolute_base_offset
+                    offset += absolute_base_offset
 
+                key, value = self._read_key_value(msg_pos + key_offset)
                 yield LegacyRecord(
-                    inner_offset, inner_timestamp, msg.timestamp_type,
-                    inner_msg.key, inner_msg.value, inner_msg.crc)
+                    offset, timestamp, timestamp_type,
+                    key, value, crc)
         else:
-            yield LegacyRecord(offset, msg.timestamp, msg.timestamp_type,
-                               msg.key, msg.value, msg.crc)
+            key, value = self._read_key_value(key_offset)
+            yield LegacyRecord(
+                self._offset, self._timestamp, timestamp_type,
+                key, value, self._crc)
 
 
 class LegacyRecord(ABCRecord):

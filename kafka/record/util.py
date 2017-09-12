@@ -1,12 +1,7 @@
 import six
+import binascii
 
 from ._crc32c import crc as crc32c_py
-
-
-def make_slice(buf, slice_start, slice_end):
-    """ No copy way to get buffer interface compatible with struct.unpack
-    """
-    return memoryview(buf)[slice_start:slice_end]
 
 
 if six.PY3:
@@ -107,4 +102,11 @@ def calc_crc32c(memview):
     """ Calculate CRC-32C (Castagnoli) checksum over a memoryview of data
     """
     crc = crc32c_py(memview)
+    return crc
+
+
+def calc_crc32(memview):
+    """ Calculate simple CRC-32 checksum over a memoryview of data
+    """
+    crc = binascii.crc32(memview) & 0xffffffff
     return crc

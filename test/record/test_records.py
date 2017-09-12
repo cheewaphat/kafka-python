@@ -95,7 +95,7 @@ def test_memory_records_v1():
     assert recs[0].key is None
     assert recs[0].timestamp == 1503648000942
     assert recs[0].timestamp_type == 0
-    assert recs[0].checksum == 1199974594
+    assert recs[0].checksum == 1199974594 & 0xffffffff
 
     assert records.next_batch() is not None
     assert records.next_batch() is not None
@@ -123,7 +123,7 @@ def test_memory_records_v0():
     assert recs[0].key is None
     assert recs[0].timestamp is None
     assert recs[0].timestamp_type is None
-    assert recs[0].checksum == -22012481
+    assert recs[0].checksum == -22012481 & 0xffffffff
 
     assert records.next_batch() is not None
     assert records.next_batch() is not None
