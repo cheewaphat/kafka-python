@@ -105,7 +105,7 @@ class LegacyRecordBatch(ABCRecordBatch, LegacyRecordBase):
         return self._attributes & self.CODEC_MASK
 
     def validate_crc(self):
-        crc = calc_crc32(self.buffer[self.MAGIC_OFFSET:])
+        crc = calc_crc32(self._buffer[self.MAGIC_OFFSET:])
         return self._crc == crc
 
     def _decompress(self, key_offset):
