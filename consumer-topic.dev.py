@@ -10,8 +10,6 @@ import datetime
 
 from kafka import KafkaConsumer
 
-
-
 class Consumer(multiprocessing.Process):
     daemon = True
 
@@ -32,7 +30,7 @@ class Consumer(multiprocessing.Process):
             'am-93001',
             'am-93012',
             'am-all',
-            'am-raw'
+            'am-raw',
             'ccp-1001',
             'ccp-1002',
             'ccp-1003',
@@ -40,34 +38,34 @@ class Consumer(multiprocessing.Process):
             'ccp-1005',
             'ccp-1006',
             'ccp-1007',
-            # 'ccp-1100',
-            # 'ccp-1101',
+            'ccp-1100',
+            'ccp-1101',
             'ccp-1102',
-            # 'ccp-1200',
+            'ccp-1200',
             'ccp-1300',
             'ccp-1400',
             'ccp-1500',
             'ccp-1600',
             'ccp-1700',
-            # 'ccp-1900',
+            'ccp-1900',
             'ccp-2100',
             'ccp-2200',
             'ccp-2300',
             'ccp-2400',
-            # 'ccp-all',
-            # 'ccp-file',
-            # 'ccp-raw',
-             'dmc-811001',
-             'dmc-812001',
-             'dmc-812005',
-             'dmc-812006',
-             'dmc-812007',
-             'dmc-832005',
+            'ccp-all',
+            'ccp-file',
+            'ccp-raw',
+            'dmc-811001',
+            'dmc-812001',
+            'dmc-812005',
+            'dmc-812006',
+            'dmc-812007',
+            'dmc-832005',
             'dmc-all',
             'dmc-file',
-            # 'dmc-raw',
+            'dmc-raw',
             # 'etg-logs',
-             'etg-logss',
+            # 'etg-logss',
             #'metrics',
              'mldd-50001',
              'mldd-50040',
@@ -79,7 +77,7 @@ class Consumer(multiprocessing.Process):
             # 'mldd-52022',
             # 'mldd-52024',
             # 'mldd-all',
-            'my-topic',
+            'my-topic'
             # 'performance_topic'
         ])
 
