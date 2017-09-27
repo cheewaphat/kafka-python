@@ -71,14 +71,19 @@ class Consumer(multiprocessing.Process):
         values = []
         fields = []
 
-        for fld, val in self._map_rows.iteritems():            
+        for fld, val in self._map_rows.iteritems():   
+
+            self.check_oracle_funciton(fld,val)
+
             fields.append(fld)
             values.append(val)        
 
         print fields
 
-        with open(path, 'w') as f:     
-            f.write( "INSERT INTO %s %r VALUES %r;" % ( str(self._cfg_table), fields, tuple(values) )  )
+        with open(path, 'w') as f:                 
+            str_field = "%s %r" % (  str(self._cfg_table), tuple(fields), )
+            str_value = "%r" % ( tuple(values), )
+            f.write( "INSERT INTO %s VALUES %s ;" % (str_field.replace('\'', ''), str_value )  )
 
         logging.info("write %s" % path)
     
@@ -115,6 +120,9 @@ class Consumer(multiprocessing.Process):
 
     def to_oracle(self,message):
         print message
+
+    def check_oracle_funciton(self,message):
+        pass
     
 
     def to_query(self,message):
