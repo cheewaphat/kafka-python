@@ -2,7 +2,9 @@
 import threading, logging, datetime,time
 import multiprocessing
 import json,csv
+import re
 import ConfigParser, os, sys
+
 
 from kafka import KafkaConsumer
        
@@ -10,13 +12,14 @@ from kafka import KafkaConsumer
 # consumer class
 class Consumer(multiprocessing.Process):
     daemon  = True
-
-    def __init__(self,cfgFile):
-        self.set_config(cfgFile)
-        self.dir_tmp    = "/tmp/lab/kafka-python/tmp/"
-        self.dir_json   = "/tmp/lab/kafka-python/json/"
-        self.dir_csv    = "/tmp/lab/kafka-python/csv/"
-        self.dir_sql    = "/tmp/lab/kafka-python/sql/"
+    
+    def __init__(self,cfgFile):        
+        self.set_config(cfgFile)       
+        self.currentdate= datetime.date.today()
+        self.dir_tmp    = "/tmp/lab/kafka-python/tmp/%s/" % self.currentdate
+        self.dir_json   = "/tmp/lab/kafka-python/json/%s/" % self.currentdate
+        self.dir_csv    = "/tmp/lab/kafka-python/csv/%s/" % self.currentdate
+        self.dir_sql    = "/tmp/lab/kafka-python/sql/%s/" % self.currentdate
     
     
     def set_config(self,path):        
@@ -25,14 +28,14 @@ class Consumer(multiprocessing.Process):
         self._configfileName = os.path.basename(self._abspath)
         self._configPath= self._abspath        
 
-        logging.info( "Loadding config ini = %s" % self._configPath )
+        logging.info( "Loadding config .ini = %s" % self._configPath )
         config = ConfigParser.ConfigParser()
         config.read(self._configPath)
         self.config = config
         # init
         self._cfg_schema  =  self.config.get('target','schema')
         self._cfg_table   =  self.config.get('target','table')
-        self._cfg_mapper  =  self.config.items('database-mapper')
+        self._cfg_mapper  =  self.config.items('database-mapper')        
 
 
     def run(self):
@@ -72,18 +75,14 @@ class Consumer(multiprocessing.Process):
         fields = []
 
         for fld, val in self._map_rows.iteritems():   
-
-            self.check_oracle_funciton(fld,val)
-
+            val = self.check_oracle_funciton(fld,val)
             fields.append(fld)
-            values.append(val)        
-
-        print fields
+            values.append(val)                    
 
         with open(path, 'w') as f:                 
             str_field = "%s %r" % (  str(self._cfg_table), tuple(fields), )
             str_value = "%r" % ( tuple(values), )
-            f.write( "INSERT INTO %s VALUES %s ;" % (str_field.replace('\'', ''), str_value )  )
+            f.write( "INSERT INTO %s VALUES %s ;" % (str_field.replace('\'', ''), str_value.replace('"', '') )  )
 
         logging.info("write %s" % path)
     
@@ -95,6 +94,7 @@ class Consumer(multiprocessing.Process):
                 value = self.parse_json(jsonData,field_json)
                 if value :
                     rows.update({field_ora : value})
+
         self._map_rows   = rows
     
 
@@ -121,9 +121,14 @@ class Consumer(multiprocessing.Process):
     def to_oracle(self,message):
         print message
 
-    def check_oracle_funciton(self,message):
-        pass
-    
+    def check_oracle_funciton(self,field=None,value=None):
+        if self.config.has_option("oracle-function",field):            
+            pattern =   self.config.get('oracle-function', field) 
+            iRe = re.compile(re.escape( "{%s}" % field ), re.IGNORECASE)            
+            return iRe.sub(value, pattern)
+
+        return value
+
 
     def to_query(self,message):
         print message
@@ -142,9 +147,17 @@ class Consumer(multiprocessing.Process):
             return str(d.get(keys,""))
 
 
-def main():
-    tasks = Consumer(sys.argv[1])        
-        
+def init_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description="Kafka Consumer to ORACLE Datable")
+    parser.add_argument('config',help="configuretion file")        
+    return parser
+
+
+def main():    
+    parser = init_parser()
+    args = parser.parse_args()
+    tasks = Consumer(args.config)        
     tasks.run()
  
 
@@ -152,7 +165,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         # filename='/tmp/lab/consumer-listener-dev.log',
         # filemode='w',
-        #format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
+        format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',        
         level=logging.INFO
         )
     main()

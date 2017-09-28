@@ -53,8 +53,8 @@ class Consumer(multiprocessing.Process):
             'ccp-2300',
             'ccp-2400',
             'ccp-all',
-            'ccp-file',
-            'ccp-raw',
+            # 'ccp-file', text pipe
+            # 'ccp-raw', xml output
             'dmc-811001',
             'dmc-812001',
             'dmc-812005',
