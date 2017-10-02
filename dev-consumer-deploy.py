@@ -8,6 +8,7 @@ import ConfigParser, os, sys
 
 from kafka import KafkaConsumer
 from parser import ParserCsv
+from parser import ParserSQL
        
 
 # consumer class
@@ -52,10 +53,11 @@ class Consumer(multiprocessing.Process):
         #build 
         for message in consumer:             
             self.mapper(message)
-            # self.write_tmp(message)
-            # self.write_sql(message)
-            self.write_csv(message)
-            self.write_json(message)
+            self.write_tmp(message)
+            # self.write_sql(message)            
+            jsonpath = self.write_json(message)
+            self.parse_csv(jsonpath=jsonpath,message=message,config=self.config)
+            self.parse_sql(jsonpath=jsonpath,message=message,config=self.config)
 
     def write_tmp(self,message):
         dirname = self.dir_tmp
@@ -68,27 +70,40 @@ class Consumer(multiprocessing.Process):
         
         logging.info("write %s" % path)
 
-    def write_csv(self,message):
-        dirname = self.dir_csv
-        path    = dirname+message.topic+"_"+str(message.timestamp)+".out"  
-        
+    def parse_sql(self,jsonpath=None,message=None):
+        dirname = self.dir_sql
+        path    = dirname+message.topic+"_"+str(message.timestamp)+".sql"          
         self.dir_exists(dirname)
 
-        csvMng = ParserCsv(injson=self._map_rows, output=path )
+        sqlMng = ParserSQL( finput=jsonpath, foutput=path )        
+        sqlMng.out()
+        
+        logging.info("write %s" % path)
+
+    def parse_csv(self,jsonpath=None,message=None):
+        dirname = self.dir_csv
+        path    = dirname+message.topic+"_"+str(message.timestamp)+".csv"          
+        self.dir_exists(dirname)
+
+        csvMng = ParserCsv( finput=jsonpath, foutput=path )        
         csvMng.out()
         
         logging.info("write %s" % path)
     
-    def write_json(self,message):
+    def write_json(self,message):        
         dirname = self.dir_json
-        path    = dirname+message.topic+"_"+str(message.timestamp)+".json"  
+        path    = dirname+message.topic+"_"+str(message.timestamp)+".json"      
         self.dir_exists(dirname)
-        
-        print "write json"
-        print self._map_rows
+
+        with open(path, 'w') as outfile:        
+            try:
+                dataJson = json.loads(json.dumps(self._map_rows))
+                json.dump(dataJson,outfile)                            
+            except ValueError:
+                logging.error( ValueError.message )
         
         logging.info("write %s" % path)
-
+        return path
 
 
     def write_sql(self,message):
@@ -124,30 +139,7 @@ class Consumer(multiprocessing.Process):
 
         if self._map_rows :
             self.isMappeed = True
-    
-
-    def to_csv(self,message):
-        print message
-
-    
-    def to_json(self,message):
-        _date   = datetime.datetime.fromtimestamp(message.timestamp/1000).strftime('%Y%m%d')    
-        dirname = "/tmp/lab/json/"+_date+"/"+message.topic+"/"
-        path = dirname+message.topic+"_"+str(message.timestamp)+".json"  
-        logging.info( "write file "+ path )
-
-        self.dir_exists(dirname)
-
-        with open(path, 'w') as outfile:        
-            try:
-                dataJson = json.loads(message.value)           
-                json.dump(dataJson,outfile)                            
-            except ValueError:
-                logging.error( ValueError.message )
-
-
-    def to_oracle(self,message):
-        print message
+        
 
     def check_oracle_funciton(self,field=None,value=None):
         if self.config.has_option("oracle-function",field):            
@@ -156,11 +148,6 @@ class Consumer(multiprocessing.Process):
             return iRe.sub(value, pattern)
 
         return value
-
-
-    def to_query(self,message):
-        print message
-    
     
     def dir_exists(self,dirname):
         if not os.path.exists(dirname):
