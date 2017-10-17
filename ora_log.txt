@@ -1,0 +1,32 @@
+ORACLE_HOME=/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1
+LD_LIBRARY_PATH=$ORACLE_HOME/lib:${LD_LIBRARY_PATH}
+PATH=/usr/bin:${PATH}
+SQLPATH=$ORACLE_HOME/lib:${SQLPATH}
+NLS_LANG=AMERICAN_AMERICA.UTF8
+
+export ORACLE_HOME
+export PATH
+export LD_LIBRARY_PATH
+export NLS_LANG
+
+
+import cx_Oracle
+con = cx_Oracle.connect("nrtstgappo/nrtstgappo_dev@172.19.195.90:1532/nrtstgappo")
+con = cx_Oracle.connect('tatapp21/tatapp21@172.19.195.90:1532/nrtstgappo')
+con = cx_Oracle.connect('RPTPRDAPPO/rptprd#1234@dbnbspr1:1531/RPTPRDAPPO')
+con = cx_Oracle.connect('RPTPRDAPPO/rptprd#1234@dbnbspr1:1531/RPTPRDAPPO')
+con = cx_Oracle.connect('RPTPRDAPPO/rptprd#1234@dbnbspr1:1531/RPTPRDAPPO')
+con.version()
+
+
+
+ File "<stdin>", line 1, in <module>
+cx_Oracle.DatabaseError: DPI-1049: symbol OCIClientVersion not found in OCI library
+ORACLE_HOME=/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1
+ORA_CON="${ORACLE_HOME}/bin/sqlplus -s ${ORA_USERNAME}/${ORA_PASSWORD}@${ORA_SERVER}:${ORA_PORT}/${ORA_SERVICE_NAME}"
+
+export ORACLE_HOME=/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1 && /opt/app/oracle/hdpidbpr1/product/11.2.0/client_1/bin/sqlplus "nrtstgappo/nrtstgappo_dev@172.19.195.90:1532/nrtstgappo"
+
+
+
+export ORACLE_HOME=/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1 && /opt/app/oracle/hdpidbpr1/product/11.2.0/client_1/bin/sqlplus HDPCTLAPPC/tedw#8290@dbhdppr1.true.care:1555/HDPPRD02
