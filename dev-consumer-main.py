@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import threading, logging, datetime,time
+import threading, logging,sched, datetime,time
 import multiprocessing
 import json,csv
 import re
@@ -8,7 +8,8 @@ import traceback
 
 
 from kafka import KafkaConsumer
-from parser import ParserSQL 
+from parser import ParserSQL
+from parser import ParserCSV
        
 
 # consumer class
@@ -20,7 +21,7 @@ class Consumer(multiprocessing.Process):
         self.currentdate= datetime.date.today()
         # self.dir_tmp    = "/tmp/workspace/kafka-python/tmp/%s" % self.currentdate
         # self.dir_json   = "/tmp/workspace/kafka-python/json/%s" % self.currentdate
-        # self.dir_csv    = "/tmp/workspace/kafka-python/csv/%s" % self.currentdate
+        self.dir_csv    = "/tmp/workspace/kafka-python/csv/%s" % self.currentdate
         self.dir_sql    = "/tmp/workspace/kafka-python/sql/%s" % self.currentdate
     
     
@@ -39,7 +40,7 @@ class Consumer(multiprocessing.Process):
     def run(self):
         bootstrap_servers = self.config.get('kafka', 'bootstrap_servers').split(',')
         topic = self.config.get('kafka','topic').split(',')
-
+        
         consumer = KafkaConsumer(
             bootstrap_servers=bootstrap_servers,
             auto_offset_reset='earliest'            
@@ -47,12 +48,18 @@ class Consumer(multiprocessing.Process):
         consumer.subscribe(topic)       
         
         #build 
-        for msg in consumer:             
-            print msg
-
+        for msg in consumer:                         
             # ParserSQL            
-            pSQl = ParserSQL(message=msg,config=self.config)   
-            pSQl.out( "%s/%s_%s_%s.sql" %( self.dir_sql, msg.topic, msg.key, msg.timestamp ) )
+            # pSQL = ParserSQL(message=msg,config=self.config)   
+            # pSQL.out( "%s/%s_%s_%s.sql" %( self.dir_sql, msg.topic, msg.key, msg.timestamp ) )
+            # ParserCSV
+            # print msg.value.decode('utf-8')
+            pCSV = ParserCSV(message=msg,config=self.config)   
+            pCSV.out( "%s/%s_%s_%s.csv" %( self.dir_csv, msg.topic, msg.key, msg.timestamp ) )
+
+
+    def db_loader(self):
+        print "db loader"
 
 
 def init_parser():
@@ -73,7 +80,8 @@ if __name__ == "__main__":
     logging.basicConfig(
         # filename='/tmp/workspace/dev-consumer-main.log',
         # filemode='w',
-        format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',        
+        # format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',      
+        format='%(asctime)s-%(name)s-%(levelname)s %(message)s',
         level=logging.INFO
         )
     main()
