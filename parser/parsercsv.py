@@ -15,8 +15,11 @@ class ParserCSV(object):
         logging.info("Start Parse CSV")
         self._currentdate= datetime.date.today()
         self._consumer_msg = message       
-        self._config = config
+        self._config = config        
+        self._data_header =[]
+        # self._data_body  =[]
         self._map_rows = {}
+
         ParserCSV.count += 1
 
         if message:
@@ -40,22 +43,13 @@ class ParserCSV(object):
         
         for field_ora, field_json in self._cfg_mapper:               
             if field_ora :             
-                value = self.parse_json(jsonData,field_json)                
-                # print field_ora , value
-                self._map_rows.update({field_ora : value})
-        
+                value = self.parse_json(jsonData,field_json)                                
+                self._data_header.append( field_ora )
+                # self._data_body.append( value )
+                self._map_rows[field_ora] = value
 
-        if self._map_rows :
-            self.isMappeed = True
-    
-    
-    def check_oracle_funciton(self,field=None,value=None):
-        if self._config.has_option("oracle-function",field):            
-            pattern =   self._config.get('oracle-function', field) 
-            iRe = re.compile(re.escape( "{%s}" % field ), re.IGNORECASE)            
-            return iRe.sub(value, pattern)
+        self.isMappeed = True   
 
-        return value
 
     def parse_json(self,d, keys):                
         if "." in keys:
@@ -64,31 +58,19 @@ class ParserCSV(object):
         else:
             return str(d.get(keys,""))
 
-    def todo(self,path):
-        # message = self._consumer_msg        
-        values = []
-        fields = []
-        # print self._map_rows.keys     
-        for fld, val in self._map_rows.iteritems():               
-            fields.append(fld)
-            values.append(val)                     
-        
-        # try:
-        with open(path, 'wb+') as outfile:
-            # output dict needs a list for new column ordering                       
-            writer = csv.DictWriter(outfile, fieldnames=fields,delimiter='|',quoting=csv.QUOTE_MINIMAL)
-            # reorder the header first
-            writer.writeheader()
-            for row in csv.DictReader(self._map_rows):
-                writer.writerow(row)            
-            # print infile.count
-            # for row in csv.DictReader(infile):
-            logging.info( "Done " )
+    def todo(self,path):                
+        try:
+            with open(path, 'a') as outfile:                
+                writer = csv.DictWriter(outfile, fieldnames=self._data_header,delimiter='|',quoting=csv.QUOTE_MINIMAL)                
+                # writer.writeheader()            
+                writer.writerow(self._map_rows)            
+                logging.info( "Done " )
 
-        # except expression as identifier:
-        #     logging.error(identifier.msg)          
+        except :
+            e = sys.exc_info()[0]            
+            logging.error(e)          
 
-        print values
+        # print values
     
     def out(self,path=None):
         self.dir_exists(path)        
