@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 class OracleLoader(threading.Thread):     
     daemon = True
-    run_on = 5 # minute
+    run_on = 300 # sec
 
     def set_config(self,path):       
         if not os.path.exists(path):
@@ -55,7 +55,7 @@ class OracleLoader(threading.Thread):
             return ""
         return data
 
-    def clean(self):        
+    def clean(self):                
         files = [
             self.file_ctrl,
             self.file_data,
@@ -176,6 +176,6 @@ class OracleLoader(threading.Thread):
             if self.prepare():
                 self.make_ctl_file() 
                 self.call_loader()
-                self.clean
+                self.clean()
 
             time.sleep(self.run_on)

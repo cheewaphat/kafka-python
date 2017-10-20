@@ -1,0 +1,83 @@
+#!/bin/bash
+. ${HOME}/.bash_profile
+PATH_LOG="/tmp/workspace/kafka-python/"
+PATH_CFG="/cisapp/cisetl_apps1/lcisetl1b/workspace/kafka-python/config/"
+APP_PY="dev-main.py"
+mkdir -p "${PATH_LOG%/}"
+
+exec > >(tee -i ${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log)
+exec 2>&1
+
+PID=$$
+CURR_DIR="$( cd "$( dirname "${0}" )" && pwd )"
+CURR_USER="$(whoami)"
+
+
+
+function stop()
+{
+    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9
+}
+
+function start()
+{
+    local _cfg="${CURR_DIR%/}/config/"
+    local _tmpout="${CURR_DIR%/}/found-cfg.out"
+    ls ${_cfg%/}/*.ini > "${_tmpout}"
+    echo ""
+    echo "`date '+%Y-%m-%d %H:%M:%S'` lookup *.ini in ${_cfg%/}"    
+    echo "`date '+%Y-%m-%d %H:%M:%S'` found `wc -l "$_tmpout"`"
+    
+    while IFS='' read -r line || [[ -n "$line" ]]; do
+        filename=$(basename "$line")        
+        extension="${filename##*.}"        
+        cmd="python ${CURR_DIR%/}/$APP_PY  ${_cfg%/}/${filename%.*}.ini"
+
+        #check process
+        if [ `ps -ef | grep "$cmd" | grep -v grep|  wc -l` -ne 0 ] ;then 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Process is still running , $cmd"
+            continue 
+        fi
+        
+        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+            eval "$cmd &" 
+            pid=$!
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Call :PID:$pid:$cmd"
+            sleep 1
+        else 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` file format invalide"
+        fi
+        
+    done < "$_tmpout"
+
+    #clear temp
+    remove_archive
+
+}
+
+function remove_archive()
+{
+    find /tmp/workspace/kafka-python/ -type f -atime +7 -exec rm -f {} \; -print
+    find /tmp/workspace/kafka-python/ -type d -atime +7 -exec rm -rf {} \; -print
+}
+
+
+#===================== MAIN =====================#
+case "$1" in 
+    start)
+       start
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       stop
+       start
+       ;;
+    status)
+       ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $4}' | uniq
+       ;;
+    *)
+       echo "Usage: $0 {start|stop|status|restart}"
+esac
+exit 0 
