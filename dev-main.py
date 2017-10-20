@@ -24,10 +24,12 @@ class Consumer(multiprocessing.Process):
         self.config = config
         logging.info( "Loadding config .ini = %s" % self._configPath )     
 
-    def set_target_dir(self,target):
-        self.dir_csv    = "%s/%s" % ( target , "csv" )
-        self.dir_sql    = "%s/%s" % ( target , "sql" )
+    def set_target_csv_dir(self,target):
+        self.dir_csv    = "%s" % ( target  )
         logging.info(self.dir_csv)
+
+    def set_target_sql_dir(self,target):
+        self.dir_sql    = "%s" % ( target  )        
         logging.info(self.dir_sql)
 
 
@@ -64,11 +66,12 @@ def main():
     #consumer
     cons = Consumer()        
     cons.set_config(args.config)    
-    cons.set_target_dir("/tmp/workspace/kafka-python/%s" % run_date ) 
+    cons.set_target_csv_dir("/tmp/workspace/kafka-python/%s/csv" % run_date ) 
 
     #loader
     oraldr = OracleLoader()
     oraldr.set_config(args.config)    
+    oraldr.set_temp_dir("/tmp/workspace/kafka-python/ldr/%s" % run_date  )    
     oraldr.set_source_dir("/tmp/workspace/kafka-python/%s/csv" % run_date )    
 
     tasks = [
@@ -88,7 +91,7 @@ if __name__ == "__main__":
         # filename="/tmp/workspace/kafka-python/log/dev_consumer_main_%s.log" % (currentdate),
         # filemode='w',
         # format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',      
-        format='%(asctime)s-%(name)s-%(levelname)s %(message)s',
+        format='%(asctime)s-%(name)s:%(thread)d-%(levelname)s %(message)s',
         level=logging.INFO
         )
     main()

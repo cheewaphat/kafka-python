@@ -17,15 +17,10 @@ class OracleLoader(threading.Thread):
 
         self.currentdate= datetime.date.today().strftime('%Y%m%d')        
         self.pid = os.getpid()   
-        self.dir_ldr    = "/tmp/workspace/kafka-python/ldr/%s" % self.currentdate  
+        # self.dir_ldr    = "/tmp/workspace/kafka-python/ldr/%s" % self.currentdate  
         config = ConfigParser.ConfigParser()
         config.read(os.path.abspath(path))
-        self.config = config
-        self.file_ctrl  = "{}/{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_data  = "{}/{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_bad   = "{}/{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_dsc   = "{}/{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
-        self.file_log   = "{}/{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
+        self.config = config        
         logging.info( "Loader config .ini = %s" % path )      
 
     def set_env(self):        
@@ -37,7 +32,15 @@ class OracleLoader(threading.Thread):
         logging.info("CSV Source path : %s" % self.source_dir )
 
     def set_temp_dir(self,path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         self.dir_ldr = path
+        self.file_ctrl  = "{}/{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
+        self.file_data  = "{}/{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
+        self.file_bad   = "{}/{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
+        self.file_dsc   = "{}/{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
+        self.file_log   = "{}/{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
         logging.info("Temp Loader path : %s" % self.dir_ldr )
 
     def dir_exists(self,filepath):
