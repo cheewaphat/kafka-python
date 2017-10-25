@@ -33,8 +33,8 @@ function start()
         extension="${filename##*.}"        
         cmd="python ${CURR_DIR%/}/$APP_PY  ${_cfg%/}/${filename%.*}.ini"
 
-        #check process
-        if [ `ps -ef | grep "$cmd" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        #check process	    
+        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
             echo "`date '+%Y-%m-%d %H:%M:%S'` Process is still running , $cmd"
             continue 
         fi

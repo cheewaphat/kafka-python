@@ -13,7 +13,10 @@ from loader import OracleLoader
 # consumer class
 class Consumer(multiprocessing.Process):
     daemon  = True
-    
+    offset_earliest = "earliest"
+    offset_latest = "latest"
+
+
     def set_config(self,path):                 
         self._abspath = os.path.abspath(path)
         self._execdir = os.path.dirname(self._abspath)        
@@ -38,8 +41,8 @@ class Consumer(multiprocessing.Process):
         topic = self.config.get('kafka','topic').split(',')
         
         consumer = KafkaConsumer(
-            bootstrap_servers=bootstrap_servers,
-            auto_offset_reset='earliest'            
+            bootstrap_servers= bootstrap_servers,
+            auto_offset_reset= Consumer.offset_earliest   
             )        
         consumer.subscribe(topic)               
         
