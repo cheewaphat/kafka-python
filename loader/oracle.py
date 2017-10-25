@@ -24,8 +24,11 @@ class OracleLoader(threading.Thread):
         logging.info( "Loader config .ini = %s" % path )      
 
     def set_env(self):        
-        os.putenv('ORACLE_HOME', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/') 
-        os.putenv('LD_LIBRARY_PATH', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/') 
+        if not os.getenv('ORACLE_HOME'):
+            os.putenv('ORACLE_HOME', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/') 
+
+        if not os.getenv('LD_LIBRARY_PATH'):
+            os.putenv('LD_LIBRARY_PATH', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/') 
 
     def set_source_dir(self,src):
         self.source_dir = src
@@ -71,9 +74,9 @@ class OracleLoader(threading.Thread):
     def prepare(self):                
         datafile = "%s/%s.csv" % (self.source_dir, self.config.get('kafka','topic') )
         if not os.path.exists(datafile):
-            logging.info("no data file %s" % datafile )
+            # logging.info("no data file %s" % datafile )
             return False
-        
+        logging.info("data file %s" % datafile )
         if not os.path.exists(self.dir_ldr):
             os.makedirs(self.dir_ldr)
             

@@ -1,28 +1,43 @@
 #!/bin/bash
 . ${HOME}/.bash_profile
-PATH_LOG="/tmp/workspace/kafka-python/"
-PATH_CFG="/cisapp/cisetl_apps1/lcisetl1b/workspace/kafka-python/config/"
-APP_PY="dev-main.py"
-mkdir -p "${PATH_LOG%/}"
 
-exec > >(tee -i ${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log)
-exec 2>&1
-
-PID=$$
 CURR_DIR="$( cd "$( dirname "${0}" )" && pwd )"
 CURR_USER="$(whoami)"
+PATH_TMP="/tmp/workspace/`basename ${CURR_DIR%/}`"
+PATH_LOG="/tmp/workspace/`basename ${CURR_DIR%/}`/log"
+PATH_CFG="${CURR_DIR%/}/config/"
+APP_PY="main.py"
+PID=$$
 
+#export to env path for main.py APP
+export PATH_TMP
+export PATH_LOG
 
+mkdir -p "${PATH_LOG%/}"
+
+if [ ! -f "${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log" ] ; then
+    mv "${PATH_LOG%/}/`basename $0`.log" "${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log"
+fi
+
+exec > >(tee -i ${PATH_LOG%/}/`basename $0`.log)
+exec 2>&1
+
+function status()
+{
+    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $5}' | uniq
+}
 
 function stop()
 {
+    # ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}'
     ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9
 }
 
 function start()
 {
+
     local _cfg="${CURR_DIR%/}/config/"
-    local _tmpout="${CURR_DIR%/}/found-cfg.out"
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     ls ${_cfg%/}/*.ini > "${_tmpout}"
     echo ""
     echo "`date '+%Y-%m-%d %H:%M:%S'` lookup *.ini in ${_cfg%/}"    
@@ -31,7 +46,7 @@ function start()
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="python ${CURR_DIR%/}/$APP_PY  ${_cfg%/}/${filename%.*}.ini"
+        cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/${filename%.*}.ini"
 
         #check process	    
         if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
@@ -49,6 +64,7 @@ function start()
         fi
         
     done < "$_tmpout"
+    rm "${_tmpout}"
 
     #clear temp
     remove_archive
@@ -57,8 +73,8 @@ function start()
 
 function remove_archive()
 {
-    find /tmp/workspace/kafka-python/ -type f -atime +7 -exec rm -f {} \; -print
-    find /tmp/workspace/kafka-python/ -type d -atime +7 -exec rm -rf {} \; -print
+    find "${PATH_TMP%/}" -type f -atime +7 -exec rm -f {} \; -print
+    find "${PATH_TMP%/}" -type d -atime +7 -exec rm -rf {} \; -print
 }
 
 
@@ -75,7 +91,7 @@ case "$1" in
        start
        ;;
     status)
-       ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $4}' | uniq
+       status
        ;;
     *)
        echo "Usage: $0 {start|stop|status|restart}"
