@@ -33,6 +33,23 @@ function stop()
     ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9
 }
 
+function repair()
+{
+    local topic=$1    
+    local _cfg="${CURR_DIR%/}/config/"
+
+    if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
+        echo "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
+        exit 1
+    fi
+
+    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
+    cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest"
+    eval "${cmd}"
+    RUN_PID=$?
+    echo "Repair topic [${RUN_PID}] : ${topic}"
+}
+
 function start()
 {
 
@@ -82,18 +99,27 @@ function remove_archive()
 case "$1" in 
     start)
        start
-       ;;
+        ;;
     stop)
        stop
-       ;;
+        ;;
     restart)
        stop
        start
-       ;;
+        ;;
     status)
        status
-       ;;
+        ;;
+    repair)
+        if [ -z $2 ];then
+            echo "press enter \"topic\""
+            exit 1
+        fi
+        repair $2
+        ;;
     *)
-       echo "Usage: $0 {start|stop|status|restart}"
+       echo "Usage: $0 {start|stop|status|restart|repair}"
+       sleep 5
+       exit 0;
 esac
 exit 0 

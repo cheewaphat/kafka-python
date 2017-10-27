@@ -14,7 +14,7 @@ log_path = os.getenv('PATH_LOG')
 
 # consumer class
 class Consumer(multiprocessing.Process):
-    daemon  = True
+    daemon  = False
     offset_earliest = "earliest"
     offset_latest = "latest"
 
@@ -77,7 +77,7 @@ def main():
     parser = init_parser()
     args = parser.parse_args()
     #consumer
-    cons = Consumer()        
+    cons = Consumer()            
     cons.set_config(args.config)    
     cons.set_offet(args.mode) 
     cons.set_target_csv_dir("%s/%s/csv" % (args.tmp_path, run_date) ) 
@@ -96,7 +96,7 @@ def main():
     for t in tasks:
         t.start()
 
-    time.sleep(10)
+    #time.sleep(10)
  
 
 if __name__ == "__main__":

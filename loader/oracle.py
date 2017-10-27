@@ -16,6 +16,7 @@ class OracleLoader(threading.Thread):
             return False
 
         self.currentdate= datetime.date.today().strftime('%Y%m%d')        
+        self.currentdatetime= datetime.datetime.now().strftime('%Y%m%d%H%M%S')   
         self.pid = os.getpid()   
         # self.dir_ldr    = "/tmp/workspace/kafka-python/ldr/%s" % self.currentdate  
         config = ConfigParser.ConfigParser()
@@ -39,11 +40,11 @@ class OracleLoader(threading.Thread):
             os.makedirs(path)
 
         self.dir_ldr = path
-        self.file_ctrl  = "{}/{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_data  = "{}/{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_bad   = "{}/{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_dsc   = "{}/{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
-        self.file_log   = "{}/{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
+        self.file_ctrl  = "{}/{}_{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_data  = "{}/{}_{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_bad   = "{}/{}_{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_dsc   = "{}/{}_{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )
+        self.file_log   = "{}/{}_{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )
         logging.info("Temp Loader path : %s" % self.dir_ldr )
 
     def dir_exists(self,filepath):
@@ -58,11 +59,12 @@ class OracleLoader(threading.Thread):
             return ""
         return data
 
-    def clean(self):                
+    def clean(self):       
+        #self.file_bad         
+        #self.file_log
         files = [
             self.file_ctrl,
-            self.file_data,
-            self.file_bad,
+            self.file_data,            
             self.file_dsc
         ]
 
