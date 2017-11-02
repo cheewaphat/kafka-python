@@ -7,8 +7,17 @@ import sched
 log = logging.getLogger(__name__)
 
 class OracleLoader(threading.Thread):     
-    daemon = True
+    # daemon = True
     run_on = 300 # sec
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.stop_event = threading.Event()
+        logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
+        logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
+        
+    def stop(self):
+        self.stop_event.set()
 
     def set_config(self,path):       
         if not os.path.exists(path):
@@ -25,11 +34,20 @@ class OracleLoader(threading.Thread):
         logging.info( "Loader config .ini = %s" % path )      
 
     def set_env(self):        
-        if not os.getenv('ORACLE_HOME'):
-            os.putenv('ORACLE_HOME', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/') 
+        if not os.getenv("ORACLE_HOME"):            
+            logging.info("NOT ORACLE_HOME")
+            # os.putenv("ORACLE_HOME", "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/") 
+            os.environ["ORACLE_HOME"] = "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/"
 
-        if not os.getenv('LD_LIBRARY_PATH'):
-            os.putenv('LD_LIBRARY_PATH', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/') 
+        if not os.getenv("LD_LIBRARY_PATH"):
+            logging.info("NOT LD_LIBRARY_PATH")
+            # os.putenv("LD_LIBRARY_PATH", "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/") 
+            os.environ["LD_LIBRARY_PATH"] = "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/"
+
+        logging.info("Set Oracle ENV." )
+        logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
+        logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
+
 
     def set_source_dir(self,src):
         self.source_dir = src
@@ -156,31 +174,37 @@ class OracleLoader(threading.Thread):
         ctlfile = self.file_ctrl
         if not os.path.exists(ctlfile):
             logging.info("Control file not exists %s" % ctlfile)
+            return False                        
+
+        try:
+            self.oracle_conf = {            
+                "home":os.getenv('ORACLE_HOME').strip("/"),
+                "username":self.config.get('target','username'),
+                "password":self.config.get('target','password'),
+                "server":self.config.get('target','server'),
+                "port":self.config.get('target','port'),
+                "service_name":self.config.get('target','schema'),
+                "log_file":self.file_log,
+                "control_file":ctlfile
+            }
+            
+            self.cmd_ldr='/{ora[home]}/bin/sqlldr userid={ora[username]}/{ora[password]}@{ora[server]}:{ora[port]}/{ora[service_name]} control={ora[control_file]}  log={ora[log_file]}'.format(ora=self.oracle_conf)        
+            subprocess.call(self.cmd_ldr, shell=True)
+            logging.info("Command loader : %s" % self.cmd_ldr)
+            return True
+        except :
+            e = sys.exc_info()[0]                        
+            logging.error("Call fail : sqlldr [%s]" % e)    
             return False
-
-        self.oracle_conf = {            
-            "home":os.getenv('ORACLE_HOME').strip("/"),
-            "username":self.config.get('target','username'),
-            "password":self.config.get('target','password'),
-            "server":self.config.get('target','server'),
-            "port":self.config.get('target','port'),
-            "service_name":self.config.get('target','schema'),
-            "log_file":self.file_log,
-            "control_file":ctlfile
-        }                
         
-        self.cmd_ldr='/{ora[home]}/bin/sqlldr userid={ora[username]}/{ora[password]}@{ora[server]}:{ora[port]}/{ora[service_name]} control={ora[control_file]}  log={ora[log_file]}'.format(ora=self.oracle_conf)        
-        subprocess.call(self.cmd_ldr, shell=True)
-        logging.info("Command loader : %s" % self.cmd_ldr)
 
-    def run(self):
-        logging.info("Run Loader")
-        self.set_env()   
-        
-        while True:
+    def run(self):        
+        self.set_env()                   
+        while not self.stop_event.is_set():
             if self.prepare():
+                logging.info("Run Loader")
                 self.make_ctl_file() 
                 self.call_loader()
-                self.clean()
+                # self.clean()
 
             time.sleep(self.run_on)

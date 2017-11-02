@@ -1,0 +1,16 @@
+*.egg-info
+*.pyc
+.tox
+build
+dist
+MANIFEST
+env
+servers/*/kafka-bin*
+servers/*/resources/ssl*
+.coverage*
+.noseids
+docs/_build
+.cache*
+.idea/
+integration-test/
+tests-env/

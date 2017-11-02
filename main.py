@@ -13,10 +13,16 @@ tmp_path = os.getenv('PATH_TMP')
 log_path = os.getenv('PATH_LOG')
 
 # consumer class
-class Consumer(multiprocessing.Process):
-    daemon  = False
+class Consumer(multiprocessing.Process):    
     offset_earliest = "earliest"
     offset_latest = "latest"
+
+    def __init__(self):
+        multiprocessing.Process.__init__(self)
+        self.stop_event = multiprocessing.Event()
+        
+    def stop(self):
+        self.stop_event.set()
 
     def set_offet(self,mode="latest"):
         self.auto_offset_reset = mode
@@ -41,6 +47,7 @@ class Consumer(multiprocessing.Process):
 
 
     def run(self):
+        
         bootstrap_servers = self.config.get('kafka', 'bootstrap_servers').split(',')
         topic = self.config.get('kafka','topic').split(',')
         
@@ -48,15 +55,26 @@ class Consumer(multiprocessing.Process):
             bootstrap_servers= bootstrap_servers,
             auto_offset_reset= self.auto_offset_reset  
             )        
-        consumer.subscribe(topic)               
+        consumer.subscribe(topic)          
+        logging.info("Consumer is running subscribe [%s]" % topic)
+
+        while not self.stop_event.is_set():
+            for msg in consumer:
+                pCSV = ParserCSV(message=msg,config=self.config)   
+                pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
+                if self.stop_event.is_set():
+                    logging.info("Topic:%s is stop" % topic )
+                    break
+
+        consumer.close()     
         
-        for msg in consumer:                         
-            # ParserSQL            
-            # pSQL = ParserSQL(message=msg,config=self.config)   
-            # pSQL.out( "%s/%s_%s_%s.sql" %( self.dir_sql, msg.topic, msg.key, msg.timestamp ) )
-            # ParserCSV            
-            pCSV = ParserCSV(message=msg,config=self.config)   
-            pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
+        # for msg in consumer:                         
+        #     # ParserSQL            
+        #     # pSQL = ParserSQL(message=msg,config=self.config)   
+        #     # pSQL.out( "%s/%s_%s_%s.sql" %( self.dir_sql, msg.topic, msg.key, msg.timestamp ) )
+        #     # ParserCSV            
+        #     pCSV = ParserCSV(message=msg,config=self.config)   
+        #     pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
 
 
 def init_parser():
@@ -68,6 +86,7 @@ def init_parser():
     parser.add_argument('-m',dest='mode',help='offet mode [ earliest | latest]',default="latest") 
     parser.add_argument('-t',dest='tmp_path',help='tempolary path get env PATH_TMP',default=tmp_path)
     parser.add_argument('-l',dest='log_path',help='log path get env PATH_LOG',default=log_path)
+    parser.add_argument('--log_name',dest='log_name',help='log name',default="TGW_MSISDN")
          
     return parser
 
@@ -96,14 +115,22 @@ def main():
     for t in tasks:
         t.start()
 
-    #time.sleep(10)
+    time.sleep(10)
+    
+    for task in tasks:
+        task.stop()
+
+    for task in tasks:
+        task.join()
  
 
 if __name__ == "__main__":
-    
+    parser = init_parser()
+    args = parser.parse_args()
+
     logging.basicConfig(
-        # filename="%s/dev_consumer_main_%s.log" % (log_path,run_date),
-        # filemode='w',
+        filename="%s/%s_%s.log" % (log_path,args.log_name,run_date),
+        filemode='a',
         # format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',      
         format='%(asctime)s-%(name)s:%(thread)d-%(levelname)s %(message)s',
         level=logging.INFO

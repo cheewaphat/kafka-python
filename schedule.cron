@@ -1,5 +1,5 @@
 #!/bin/bash
-. ${HOME}/.bash_profile
+. /cisapp/cisetl_apps1/lcisetl1b/workspace/TGW_MSISDN/profile.env
 
 CURR_DIR="$( cd "$( dirname "${0}" )" && pwd )"
 CURR_USER="$(whoami)"
@@ -29,14 +29,14 @@ function status()
 
 function stop()
 {
-    # ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}'
-    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9
+    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 }
 
 function repair()
 {
     local topic=$1    
     local _cfg="${CURR_DIR%/}/config/"
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
 
     if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
         echo "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
@@ -45,9 +45,58 @@ function repair()
 
     # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
     cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest"
-    eval "${cmd}"
-    RUN_PID=$?
+    eval "${cmd} &"
+    RUN_PID=$!
     echo "Repair topic [${RUN_PID}] : ${topic}"
+    echo $RUN_PID>>"${_pid}"
+
+    # kill ps
+    sleep 299
+    kill -9 `cat "${_pid}"` && rm "${_pid}"
+}
+
+function repair_all()
+{
+
+    local _cfg="${CURR_DIR%/}/config/"
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
+    ls ${_cfg%/}/*.ini > "${_tmpout}"
+    echo ""
+    echo "`date '+%Y-%m-%d %H:%M:%S'` lookup *.ini in ${_cfg%/}"    
+    echo "`date '+%Y-%m-%d %H:%M:%S'` found `wc -l "$_tmpout"`"
+    
+    while IFS='' read -r line || [[ -n "$line" ]]; do
+        filename=$(basename "$line")        
+        extension="${filename##*.}"        
+        cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest"
+
+        #check process	    
+        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Process is still running , $cmd"
+            continue 
+        fi
+        
+        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+            eval "$cmd &" 
+            pid=$!
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Call :PID:$pid:$cmd"
+            echo $pid>>"${_pid}"
+            sleep 1
+        else 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` file format invalide"
+        fi
+        
+    done < "$_tmpout"
+    rm "${_tmpout}"
+
+    #clear temp
+    remove_archive
+
+    # kill ps
+    sleep 30
+    kill -9 `cat "${_pid}"` && rm "${_pid}"
+
 }
 
 function start()
@@ -115,7 +164,14 @@ case "$1" in
             echo "press enter \"topic\""
             exit 1
         fi
-        repair $2
+
+        if [ ${2,,} == "all" ]; then
+            repair_all $2
+        else
+            repair $2
+        fi
+
+        
         ;;
     *)
        echo "Usage: $0 {start|stop|status|restart|repair}"
