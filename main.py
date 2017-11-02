@@ -99,13 +99,13 @@ def main():
     cons = Consumer()            
     cons.set_config(args.config)    
     cons.set_offet(args.mode) 
-    cons.set_target_csv_dir("%s/%s/csv" % (args.tmp_path, run_date) ) 
+    cons.set_target_csv_dir("%s/data/%s/csv" % (args.tmp_path, run_date) ) 
 
     #loader
     oraldr = OracleLoader()
     oraldr.set_config(args.config)    
     oraldr.set_temp_dir("%s/ldr/%s" % (args.tmp_path, run_date)  )    
-    oraldr.set_source_dir("%s/%s/csv" % (args.tmp_path, run_date) )    
+    oraldr.set_source_dir("%s/data/%s/csv" % (args.tmp_path, run_date) )    
 
     tasks = [
         cons,
