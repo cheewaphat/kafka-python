@@ -6,7 +6,6 @@ from kafka import KafkaConsumer, KafkaProducer
 
 
 class Producer(threading.Thread):
-    
     def __init__(self):
         threading.Thread.__init__(self)
         self.stop_event = threading.Event()

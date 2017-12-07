@@ -1,0 +1,11 @@
+1. Task mount NFS
+	- Pasit จะเปิด UR ไปยังทีม system และ CC K.Preecha เพื่อให้ assign resource ดำเนินการ
+	- Open UR#ITO-UR-0000206 แล้ว ตอนนี้รอพี่ Articha approve
+
+2. Task DBA
+	- ขอให้ P'Pornchai ช่วยส่ง step การดำเนินการ เพื่อรวบรวมเป็น CC ครับ
+	- ได้รับ step นำมารวบรวมเป็น MOP แล้ว
+
+3. Task Hadoop ในฝั่ง app
+	- ขอให้ Thaveewat ช่วยส่ง step การดำเนินการ เพื่อรวบรวมเป็น CC ครับ
+	- ได้รับ step นำมารวบรวมเป็น MOP แล้ว

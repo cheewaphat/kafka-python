@@ -9,8 +9,17 @@ from parser import ParserCSV
 from loader import OracleLoader
 
 run_date = datetime.date.today().strftime('%Y%m%d')
+app_home = os.environ["APP_HOME"] = os.path.dirname(os.path.realpath(__file__))
 tmp_path = os.getenv('PATH_TMP')
 log_path = os.getenv('PATH_LOG')
+
+if os.getenv('PATH_TMP') is None:
+    os.environ["PATH_TMP"] = os.path.join(os.getenv('APP_HOME'), "tmp")
+    tmp_path = os.getenv('PATH_TMP')
+
+if os.getenv('PATH_LOG') is None:
+    os.environ["PATH_LOG"] = os.path.join(os.getenv('APP_HOME'), "log")
+    log_path = os.getenv('PATH_LOG')
 
 # consumer class
 class Consumer(multiprocessing.Process):    
@@ -58,7 +67,7 @@ class Consumer(multiprocessing.Process):
         consumer.subscribe(topic)          
         logging.info("Consumer is running subscribe [%s]" % topic)
 
-        while not self.stop_event.is_set():            
+        while not self.stop_event.is_set():                        
             for msg in consumer:
                 pCSV = ParserCSV(message=msg,config=self.config)   
                 pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
@@ -67,15 +76,7 @@ class Consumer(multiprocessing.Process):
                     logging.info("")
                     break
 
-        consumer.close()     
-        
-        # for msg in consumer:                         
-        #     # ParserSQL            
-        #     # pSQL = ParserSQL(message=msg,config=self.config)   
-        #     # pSQL.out( "%s/%s_%s_%s.sql" %( self.dir_sql, msg.topic, msg.key, msg.timestamp ) )
-        #     # ParserCSV            
-        #     pCSV = ParserCSV(message=msg,config=self.config)   
-        #     pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
+        consumer.close()           
 
 
 def init_parser():
@@ -108,29 +109,30 @@ def main():
     oraldr.set_temp_dir("%s/ldr/%s" % (args.tmp_path, run_date)  )    
     oraldr.set_source_dir("%s/data/%s/csv" % (args.tmp_path, run_date) )    
 
-    tasks = [
+    threads = [
         cons,
         oraldr
     ]
 
-    for t in tasks:
+    for t in threads:
         t.start()
 
     time.sleep(5)
     
-    for task in tasks:
+    for task in threads:
         task.stop()
 
-    for task in tasks:
+    for task in threads:
         task.join()
  
-
+# Start Process
 if __name__ == "__main__":
     parser = init_parser()
     args = parser.parse_args()
     
     logging.basicConfig(
-        filename="%s/%s_%s.log" % (args.log_path,args.log_name,run_date),
+         filename="%s/%s" % (args.log_path,args.log_name),
+        # filename="%s/%s_%s.log" % (args.log_path,args.log_name,run_date),
         filemode='a',
         # format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',      
         format='%(asctime)s-%(name)s:%(thread)d-%(levelname)s %(message)s',
