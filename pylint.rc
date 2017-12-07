@@ -1,5 +1,0 @@
-[TYPECHECK]
-ignored-classes=SyncManager,_socketobject
-
-[MESSAGES CONTROL]
-disable=E1129

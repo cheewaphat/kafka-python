@@ -147,11 +147,11 @@ def main():
 
     time.sleep(10)
     
-    # for task in tasks:
-    #     task.stop()
+    for task in tasks:
+        task.stop()
 
-    # for task in tasks:
-    #     task.join()
+    for task in tasks:
+        task.join()
     
 
 if __name__ == "__main__":

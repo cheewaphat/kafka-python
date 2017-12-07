@@ -11,3 +11,11 @@
 ORACLE_HOME=/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/client64_1
 LD_LIBRARY_PATH=/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/client64_1/lib
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/
+
+
+
+
+## FLUME
+
+
+

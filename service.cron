@@ -45,7 +45,7 @@ function repair()
 
     # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
     cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest"
-    eval "${cmd} &"
+    eval "${cmd}"
     RUN_PID=$!
     echo "Repair topic [${RUN_PID}] : ${topic}"
     echo $RUN_PID>>"${_pid}"
@@ -139,6 +139,7 @@ function start()
 
 function remove_archive()
 {
+    echo "check remove archive on ${PATH_TMP%/}"
     find "${PATH_TMP%/}" -type f -atime +7 -exec rm -f {} \; -print
     find "${PATH_TMP%/}" -type d -atime +7 -exec rm -rf {} \; -print
 }

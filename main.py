@@ -58,12 +58,13 @@ class Consumer(multiprocessing.Process):
         consumer.subscribe(topic)          
         logging.info("Consumer is running subscribe [%s]" % topic)
 
-        while not self.stop_event.is_set():
+        while not self.stop_event.is_set():            
             for msg in consumer:
                 pCSV = ParserCSV(message=msg,config=self.config)   
                 pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
                 if self.stop_event.is_set():
                     logging.info("Topic:%s is stop" % topic )
+                    logging.info("")
                     break
 
         consumer.close()     
@@ -115,7 +116,7 @@ def main():
     for t in tasks:
         t.start()
 
-    time.sleep(10)
+    time.sleep(5)
     
     for task in tasks:
         task.stop()
@@ -127,9 +128,9 @@ def main():
 if __name__ == "__main__":
     parser = init_parser()
     args = parser.parse_args()
-
+    
     logging.basicConfig(
-        filename="%s/%s_%s.log" % (log_path,args.log_name,run_date),
+        filename="%s/%s_%s.log" % (args.log_path,args.log_name,run_date),
         filemode='a',
         # format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',      
         format='%(asctime)s-%(name)s:%(thread)d-%(levelname)s %(message)s',
