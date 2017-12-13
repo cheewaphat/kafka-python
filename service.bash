@@ -32,10 +32,6 @@ function init()
 
     F_LOG="${PATH_LOG%/}/${LOG_NAME}"
 
-    if [ -f $F_LOG ] ; then
-        mv "${F_LOG}" "${PATH_LOG%/}/${LOG_NAME%.*}_`date "+%Y%m%d" -d"-1 day"`.log"
-    fi
-
     #load lib log  && write file      
     {
         source "${CURR_DIR%/}/lib/logging.bash" || . "${CURR_DIR%/}/lib/logging.bash" 
@@ -183,9 +179,25 @@ function remove_archive()
     find "${PATH_TMP%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null  
 }
 
+function move_log()
+{
+    # automate move log
+    local _po="${CURR_DIR%/}/.point"
+
+    if [ ! -f "${_po}" ];then
+        echo $RUNDATE > "${_po}"
+    fi
+
+    if [ `cat ${_po}` != "${RUNDATE}" ];then
+        mv "${F_LOG}" "${PATH_LOG%/}/${LOG_NAME%.*}_`date "+%Y%m%d" -d"-1 day"`_${PID}.log"    
+    fi
+    
+}
+
 
 #===================== MAIN =====================#
 init
+move_log
 
 case "$1" in 
     start)
