@@ -197,7 +197,7 @@ function move_log()
 
 #===================== MAIN =====================#
 init
-move_log
+# move_log
 
 case "$1" in 
     start)

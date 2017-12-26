@@ -119,7 +119,7 @@ def main():
     for t in threads:
         t.start()
 
-    time.sleep(5)
+    time.sleep(500)
     
     for task in threads:
         task.stop()

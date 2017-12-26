@@ -205,6 +205,6 @@ class OracleLoader(threading.Thread):
                 logging.info("Run Loader")
                 self.make_ctl_file() 
                 self.call_loader()
-                # self.clean()
+                self.clean()
 
             time.sleep(self.run_on)
