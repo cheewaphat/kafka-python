@@ -478,8 +478,8 @@ class Fetcher(six.Iterator):
         # caught by the generator. We want all exceptions to be raised
         # back to the user. See Issue 545
         except StopIteration as e:
-            log.exception('StopIteration raised unpacking messageset: %s', e)
-            raise Exception('StopIteration raised unpacking messageset')
+            log.exception('StopIteration raised unpacking messageset')
+            raise RuntimeError('StopIteration raised unpacking messageset')
 
     def __iter__(self):  # pylint: disable=non-iterator-returned
         return self
@@ -674,6 +674,9 @@ class Fetcher(six.Iterator):
                 fetchable[node_id][partition.topic].append(partition_info)
                 log.debug("Adding fetch request for partition %s at offset %d",
                           partition, position)
+            else:
+                log.log(0, "Skipping fetch for partition %s because there is an inflight request to node %s",
+                        partition, node_id)
 
         if self.config['api_version'] >= (0, 11, 0):
             version = 4

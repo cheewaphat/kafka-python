@@ -437,7 +437,7 @@ class KafkaProducer(object):
             return
         if timeout is None:
             # threading.TIMEOUT_MAX is available in Python3.3+
-            timeout = getattr(threading, 'TIMEOUT_MAX', 999999999)
+            timeout = getattr(threading, 'TIMEOUT_MAX', float('inf'))
         if getattr(threading, 'TIMEOUT_MAX', False):
             assert 0 <= timeout <= getattr(threading, 'TIMEOUT_MAX')
         else:
@@ -571,11 +571,7 @@ class KafkaProducer(object):
             # handling exceptions and record the errors;
             # for API exceptions return them in the future,
             # for other exceptions raise directly
-        except Errors.KafkaTimeoutError:
-            raise
-        except AssertionError:
-            raise
-        except Exception as e:
+        except Errors.BrokerResponseError as e:
             log.debug("Exception occurred during message send: %s", e)
             return FutureRecordMetadata(
                 FutureProduceResult(TopicPartition(topic, partition)),

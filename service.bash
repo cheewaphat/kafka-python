@@ -68,7 +68,7 @@ function repair()
     fi
 
     # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
-    cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME}"
+    cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
     eval "${cmd}"
     RUN_PID=$!
     log_inf "Repair topic [${RUN_PID}] : ${topic}"
@@ -93,7 +93,7 @@ function repair_all()
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME}"
+        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
         if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
@@ -118,7 +118,7 @@ function repair_all()
     remove_archive
 
     # kill ps
-    sleep 299
+    sleep 10
     kill -9 `cat "${_pid}"` && rm "${_pid}"
 
 }
@@ -149,7 +149,7 @@ function start()
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini --log_name ${LOG_NAME}"
+        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
         if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 

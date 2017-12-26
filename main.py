@@ -61,6 +61,8 @@ class Consumer(multiprocessing.Process):
         topic = self.config.get('kafka','topic').split(',')
         
         consumer = KafkaConsumer(
+            max_poll_records= 500,
+            max_poll_interval_ms= 300000,
             bootstrap_servers= bootstrap_servers,
             auto_offset_reset= self.auto_offset_reset  
             )        
@@ -72,7 +74,7 @@ class Consumer(multiprocessing.Process):
                 pCSV = ParserCSV(message=msg,config=self.config)   
                 pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
                 if self.stop_event.is_set():
-                    logging.info("Topic:%s is stop" % topic )
+                    # logging.info("Topic:%s is stop" % topic )
                     logging.info("")
                     break
 
