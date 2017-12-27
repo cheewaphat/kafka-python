@@ -119,13 +119,13 @@ def main():
     for t in threads:
         t.start()
 
-    time.sleep(500)
+    time.sleep(10)
     
-    for task in threads:
-        task.stop()
+    # for task in threads:
+    #     task.stop()
 
-    for task in threads:
-        task.join()
+    # for task in threads:
+    #     task.join()
  
 # Start Process
 if __name__ == "__main__":

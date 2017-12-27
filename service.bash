@@ -75,6 +75,7 @@ function repair()
     echo $RUN_PID>>"${_pid}"
 
     # kill ps
+    echo "waiting repair process "
     sleep 299
     kill -9 `cat "${_pid}"` && rm "${_pid}"
 }
