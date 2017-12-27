@@ -1,10 +1,18 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import collections
 import copy
 import errno
 import logging
 from random import shuffle, uniform
+
+# selectors in stdlib as of py3.4
+try:
+    import selectors  # pylint: disable=import-error
+except ImportError:
+    # vendored backport module
+    from .vendor import selectors34 as selectors
+
 import socket
 import struct
 import sys
@@ -39,7 +47,7 @@ try:
         SSLWantReadError = ssl.SSLWantReadError
         SSLWantWriteError = ssl.SSLWantWriteError
         SSLZeroReturnError = ssl.SSLZeroReturnError
-    except:
+    except AttributeError:
         # support older ssl libraries
         log.warning('Old SSL module detected.'
                     ' SSL error handling may not operate cleanly.'
@@ -138,6 +146,9 @@ class BrokerConnection(object):
         api_version_auto_timeout_ms (int): number of milliseconds to throw a
             timeout exception from the constructor when checking the broker
             api version. Only applies if api_version is None
+        selector (selectors.BaseSelector): Provide a specific selector
+            implementation to use for I/O multiplexing.
+            Default: selectors.DefaultSelector
         state_change_callback (callable): function to be called when the
             connection state changes from CONNECTING to CONNECTED etc.
         metrics (kafka.metrics.Metrics): Optionally provide a metrics
@@ -173,6 +184,7 @@ class BrokerConnection(object):
         'ssl_crlfile': None,
         'ssl_password': None,
         'api_version': (0, 8, 2),  # default to most restrictive
+        'selector': selectors.DefaultSelector,
         'state_change_callback': lambda conn: True,
         'metrics': None,
         'metric_group_prefix': '',
@@ -239,67 +251,42 @@ class BrokerConnection(object):
         self._sasl_auth_future = None
         self.last_attempt = 0
         self._gai = None
-        self._gai_index = 0
         self._sensors = None
         if self.config['metrics']:
             self._sensors = BrokerConnectionMetrics(self.config['metrics'],
                                                     self.config['metric_group_prefix'],
                                                     self.node_id)
 
+    def _next_afi_host_port(self):
+        if not self._gai:
+            self._gai = dns_lookup(self._init_host, self._init_port, self._init_afi)
+            if not self._gai:
+                log.error('DNS lookup failed for %s:%i (%s)',
+                          self._init_host, self._init_port, self._init_afi)
+                return
+
+        afi, _, __, ___, sockaddr = self._gai.pop(0)
+        host, port = sockaddr[:2]
+        return (afi, host, port)
+
     def connect(self):
         """Attempt to connect and return ConnectionState"""
         if self.state is ConnectionStates.DISCONNECTED:
-            log.debug('%s: creating new socket', self)
-            # if self.afi is set to AF_UNSPEC, then we need to do a name
-            # resolution and try all available address families
-            if self._init_afi == socket.AF_UNSPEC:
-                if self._gai is None:
-                    # XXX: all DNS functions in Python are blocking. If we really
-                    # want to be non-blocking here, we need to use a 3rd-party
-                    # library like python-adns, or move resolution onto its
-                    # own thread. This will be subject to the default libc
-                    # name resolution timeout (5s on most Linux boxes)
-                    try:
-                        self._gai = socket.getaddrinfo(self._init_host,
-                                                       self._init_port,
-                                                       socket.AF_UNSPEC,
-                                                       socket.SOCK_STREAM)
-                    except socket.gaierror as ex:
-                        log.warning('DNS lookup failed for %s:%d,'
-                                    ' exception was %s. Is your'
-                                    ' advertised.listeners (called'
-                                    ' advertised.host.name before Kafka 9)'
-                                    ' correct and resolvable?',
-                                    self._init_host, self._init_port, ex)
-                        self._gai = []
-                    self._gai_index = 0
-                else:
-                    # if self._gai already exists, then we should try the next
-                    # name
-                    self._gai_index += 1
-                while True:
-                    if self._gai_index >= len(self._gai):
-                        error = 'Unable to connect to any of the names for {0}:{1}'.format(
-                            self._init_host, self._init_port)
-                        log.error(error)
-                        self.close(Errors.ConnectionError(error))
-                        return
-                    afi, _, __, ___, sockaddr = self._gai[self._gai_index]
-                    if afi not in (socket.AF_INET, socket.AF_INET6):
-                        self._gai_index += 1
-                        continue
-                    break
-                self.host, self.port = sockaddr[:2]
-                self._sock = socket.socket(afi, socket.SOCK_STREAM)
+            self.last_attempt = time.time()
+            next_lookup = self._next_afi_host_port()
+            if not next_lookup:
+                self.close(Errors.ConnectionError('DNS failure'))
+                return
             else:
-                self._sock = socket.socket(self._init_afi, socket.SOCK_STREAM)
+                log.debug('%s: creating new socket', self)
+                self.afi, self.host, self.port = next_lookup
+                self._sock = socket.socket(self.afi, socket.SOCK_STREAM)
 
             for option in self.config['socket_options']:
                 log.debug('%s: setting socket option %s', self, option)
                 self._sock.setsockopt(*option)
 
             self._sock.setblocking(False)
-            self.last_attempt = time.time()
             self.state = ConnectionStates.CONNECTING
             if self.config['security_protocol'] in ('SSL', 'SASL_SSL'):
                 self._wrap_ssl()
@@ -316,11 +303,6 @@ class BrokerConnection(object):
             ret = None
             try:
                 ret = self._sock.connect_ex((self.host, self.port))
-                # if we got here through a host lookup, we've found a host,port,af tuple
-                # that works save it so we don't do a GAI lookup again
-                if self._gai is not None:
-                    self.afi = self._sock.family
-                    self._gai = None
             except socket.error as err:
                 ret = err.errno
 
@@ -443,7 +425,10 @@ class BrokerConnection(object):
             sasl_response.add_callback(self._handle_sasl_handshake_response, future)
             sasl_response.add_errback(lambda f, e: f.failure(e), future)
             self._sasl_auth_future = future
-        self.recv()
+
+        for r, f in self.recv():
+            f.success(r)
+
         # A connection error could trigger close() which will reset the future
         if self._sasl_auth_future is None:
             return False
@@ -476,7 +461,7 @@ class BrokerConnection(object):
                     self.config['sasl_mechanism']))
 
     def _send_bytes_blocking(self, data):
-        self._sock.setblocking(True)
+        self._sock.settimeout(self.config['request_timeout_ms'] / 1000)
         total_sent = 0
         try:
             while total_sent < len(data):
@@ -486,10 +471,10 @@ class BrokerConnection(object):
                 raise ConnectionError('Buffer overrun during socket send')
             return total_sent
         finally:
-            self._sock.setblocking(False)
+            self._sock.settimeout(0.0)
 
     def _recv_bytes_blocking(self, n):
-        self._sock.setblocking(True)
+        self._sock.settimeout(self.config['request_timeout_ms'] / 1000)
         try:
             data = b''
             while len(data) < n:
@@ -499,7 +484,7 @@ class BrokerConnection(object):
                 data += fragment
             return data
         finally:
-            self._sock.setblocking(False)
+            self._sock.settimeout(0.0)
 
     def _try_authenticate_plain(self, future):
         if self.config['security_protocol'] == 'SASL_PLAINTEXT':
@@ -532,20 +517,22 @@ class BrokerConnection(object):
         return future.success(True)
 
     def _try_authenticate_gssapi(self, future):
-        data = b''
-        gssname = self.config['sasl_kerberos_service_name'] + '@' + self.hostname
-        ctx_Name = gssapi.Name(gssname, name_type=gssapi.NameType.hostbased_service)
-        ctx_CanonName = ctx_Name.canonicalize(gssapi.MechType.kerberos)
-        log.debug('%s: canonical Servicename: %s', self, ctx_CanonName)
-        ctx_Context = gssapi.SecurityContext(name=ctx_CanonName, usage='initiate')
-        log.debug("%s: initiator name: %s", self, ctx_Context.initiator_name)
+        gssapi_name = gssapi.Name(
+            self.config['sasl_kerberos_service_name'] + '@' + self.hostname,
+            name_type=gssapi.NameType.hostbased_service
+        ).canonicalize(gssapi.MechType.kerberos)
+        log.debug('%s: GSSAPI name: %s', self, gssapi_name)
 
         # Exchange tokens until authentication either succeeds or fails
+        client_ctx = gssapi.SecurityContext(name=gssapi_name, usage='initiate')
         received_token = None
         try:
-            while not ctx_Context.complete:
+            while not client_ctx.complete:
                 # calculate an output token from kafka token (or None if first iteration)
-                output_token = ctx_Context.step(received_token)
+                output_token = client_ctx.step(received_token)
+
+                if output_token is None:
+                    continue
 
                 # pass output token to kafka
                 try:
@@ -558,7 +545,7 @@ class BrokerConnection(object):
                     # The gssapi will be able to identify the needed next step.
                     # The connection is closed on failure.
                     header = self._recv_bytes_blocking(4)
-                    token_size = struct.unpack('>i', header)
+                    (token_size,) = struct.unpack('>i', header)
                     received_token = self._recv_bytes_blocking(token_size)
 
                 except ConnectionError as e:
@@ -570,7 +557,7 @@ class BrokerConnection(object):
         except Exception as e:
             return future.failure(e)
 
-        log.info('%s: Authenticated as %s via GSSAPI', self, gssname)
+        log.info('%s: Authenticated as %s via GSSAPI', self, gssapi_name)
         return future.success(True)
 
     def blacked_out(self):
@@ -590,7 +577,7 @@ class BrokerConnection(object):
         elif self.connecting():
             return 0
         else:
-            return 999999999
+            return float('inf')
 
     def connected(self):
         """Return True iff socket is connected."""
@@ -628,23 +615,15 @@ class BrokerConnection(object):
                 will be failed with this exception.
                 Default: kafka.errors.ConnectionError.
         """
-        if self.state is ConnectionStates.DISCONNECTED:
-            if error is not None:
-                if sys.version_info >= (3, 2):
-                    log.warning('%s: close() called on disconnected connection with error: %s', self, error, stack_info=True)
-                else:
-                    log.warning('%s: close() called on disconnected connection with error: %s', self, error)
-            return
-
         log.info('%s: Closing connection. %s', self, error or '')
-        self.state = ConnectionStates.DISCONNECTING
-        self.config['state_change_callback'](self)
+        if self.state is not ConnectionStates.DISCONNECTED:
+            self.state = ConnectionStates.DISCONNECTING
+            self.config['state_change_callback'](self)
         self._update_reconnect_backoff()
         if self._sock:
             self._sock.close()
             self._sock = None
         self.state = ConnectionStates.DISCONNECTED
-        self.last_attempt = time.time()
         self._sasl_auth_future = None
         self._protocol = KafkaProtocol(
             client_id=self.config['client_id'],
@@ -679,6 +658,7 @@ class BrokerConnection(object):
             # In the future we might manage an internal write buffer
             # and send bytes asynchronously. For now, just block
             # sending each request payload
+            sent_time = time.time()
             total_bytes = self._send_bytes_blocking(data)
             if self._sensors:
                 self._sensors.bytes_sent.record(total_bytes)
@@ -690,7 +670,7 @@ class BrokerConnection(object):
         log.debug('%s Request %d: %s', self, correlation_id, request)
 
         if request.expect_response():
-            ifr = (correlation_id, future, time.time())
+            ifr = (correlation_id, future, sent_time)
             self.in_flight_requests.append(ifr)
         else:
             future.success(None)
@@ -705,7 +685,7 @@ class BrokerConnection(object):
     def recv(self):
         """Non-blocking network receive.
 
-        Return response if available
+        Return list of (response, future) tuples
         """
         if not self.connected() and not self.state is ConnectionStates.AUTHENTICATING:
             log.warning('%s cannot recv: socket not connected', self)
@@ -728,17 +708,15 @@ class BrokerConnection(object):
                 self.config['request_timeout_ms']))
             return ()
 
-        for response in responses:
+        # augment respones w/ correlation_id, future, and timestamp
+        for i, response in enumerate(responses):
             (correlation_id, future, timestamp) = self.in_flight_requests.popleft()
-            if isinstance(response, Errors.KafkaError):
-                self.close(response)
-                break
-
+            latency_ms = (time.time() - timestamp) * 1000
             if self._sensors:
-                self._sensors.request_time.record((time.time() - timestamp) * 1000)
+                self._sensors.request_time.record(latency_ms)
 
-            log.debug('%s Response %d: %s', self, correlation_id, response)
-            future.success(response)
+            log.debug('%s Response %d (%s ms): %s', self, correlation_id, latency_ms, response)
+            responses[i] = (response, future)
 
         return responses
 
@@ -900,12 +878,12 @@ class BrokerConnection(object):
             # request was unrecognized
             mr = self.send(MetadataRequest[0]([]))
 
-            if self._sock:
-                self._sock.setblocking(True)
+            selector = self.config['selector']()
+            selector.register(self._sock, selectors.EVENT_READ)
             while not (f.is_done and mr.is_done):
-                self.recv()
-            if self._sock:
-                self._sock.setblocking(False)
+                for response, future in self.recv():
+                    future.success(response)
+                selector.select(1)
 
             if f.succeeded():
                 if isinstance(request, ApiVersionRequest[0]):
@@ -1154,3 +1132,29 @@ def collect_hosts(hosts, randomize=True):
         shuffle(result)
 
     return result
+
+
+def is_inet_4_or_6(gai):
+    """Given a getaddrinfo struct, return True iff ipv4 or ipv6"""
+    return gai[0] in (socket.AF_INET, socket.AF_INET6)
+
+
+def dns_lookup(host, port, afi=socket.AF_UNSPEC):
+    """Returns a list of getaddrinfo structs, optionally filtered to an afi (ipv4 / ipv6)"""
+    # XXX: all DNS functions in Python are blocking. If we really
+    # want to be non-blocking here, we need to use a 3rd-party
+    # library like python-adns, or move resolution onto its
+    # own thread. This will be subject to the default libc
+    # name resolution timeout (5s on most Linux boxes)
+    try:
+        return list(filter(is_inet_4_or_6,
+                           socket.getaddrinfo(host, port, afi,
+                                              socket.SOCK_STREAM)))
+    except socket.gaierror as ex:
+        log.warning('DNS lookup failed for %s:%d,'
+                    ' exception was %s. Is your'
+                    ' advertised.listeners (called'
+                    ' advertised.host.name before Kafka 9)'
+                    ' correct and resolvable?',
+                    host, port, ex)
+        return []

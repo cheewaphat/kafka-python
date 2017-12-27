@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-#kafka-console-producer --broker-list "172.19.103.231:9092,172.19.103.232:9092,172.19.103.233:9092" --topic hello
-#kafka-topics --list --zookeeper "172.19.103.231:2181,172.19.103.232:2181,172.19.103.233:2181"
-import threading, logging, time
+#kafka-console-producer --broker-list "172.19.103.231:9092,172.19.103.232:9092,172.19.103.233:9092" --topic ccp-2300
+#kafka-topics --zookeeper "172.19.103.231:2181,172.19.103.232:2181,172.19.103.233:2181" --list
+#kafka-console-consumer  --zookeeper "172.19.103.231:2181,172.19.103.232:2181,172.19.103.233:2181" --topic ccp-2300 --from-beginning
+
+import threading, logging, datetime,time
 import multiprocessing
 import json
 #import csv
@@ -11,10 +13,16 @@ import datetime
 from kafka import KafkaConsumer
 
 class Consumer(multiprocessing.Process):
-    daemon = True
+    
+    def __init__(self):
+        multiprocessing.Process.__init__(self)
+        self.stop_event = multiprocessing.Event()        
+        
+    def stop(self):
+        self.stop_event.set()
 
     def run(self):
-        print "Running : %s" % time.ctime()
+        print "Running : %s" % time.ctime()        
 
         consumer = KafkaConsumer(
             bootstrap_servers=['172.19.103.231:9092','172.19.103.232:9092','172.19.103.233:9092' ],
@@ -39,7 +47,7 @@ class Consumer(multiprocessing.Process):
             'am-raw',
             'am-rawccp-1001',
             'ccp-0',
-            # 'ccp-1001',
+            'ccp-1001',
             'ccp-1002',
             'ccp-1003',
             'ccp-1004',
@@ -94,13 +102,18 @@ class Consumer(multiprocessing.Process):
             #'mldd-all'
         ])
 
-        for message in consumer:             
-            # logging.info("Topic :%s" % message)
-            toFile(message)
+        while not self.stop_event.is_set():
+            for message in consumer:
+                toFile(message)
+                if self.stop_event.is_set():
+                    break
+
+        consumer.close()
 
 def toFile(message):            
-    _date   = datetime.datetime.fromtimestamp(message.timestamp/1000).strftime('%Y%m%d')    
-    dirname = "/tmp/workspace/kafka-python/monitor/json/%s/%s" % ( _date , message.topic )
+    _date   = datetime.datetime.fromtimestamp(message.timestamp/1000).strftime('%Y%m%d')   
+    _project = os.path.basename( os.getcwd() )
+    dirname = "/tmp/workspace/%s/monitor/json/%s/%s" % ( _project ,_date , message.topic )
     path = "%s/%s_%s_%s.json" % (dirname, message.topic, message.key, message.timestamp)   
     logging.info( "write "+ path )
 
@@ -129,15 +142,25 @@ def main():
         Consumer()
     ]
 
-    for t in tasks:
-        t.start()
+    for task in tasks:
+        task.start()
 
     time.sleep(10)
     
+    for task in tasks:
+        task.stop()
+
+    for task in tasks:
+        task.join()
+    
 
 if __name__ == "__main__":
+    _run_date = datetime.date.today().strftime('%Y%m%d')
+    _project = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+    _name = os.path.basename(__file__)
+    print ("check log file path :/tmp/workspace/%s/%s_%s.log" %  ( _project,_name,_run_date ) )
     logging.basicConfig(
-        filename='/tmp/workspace/kafka-python/consumer-topic.log',
+        filename='/tmp/workspace/%s/%s_%s.log' % ( _project,_name,_run_date ),
         filemode='w',
         #format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
         format='%(asctime)s-%(name)s-%(levelname)s %(message)s',

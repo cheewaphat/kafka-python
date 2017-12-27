@@ -1,17 +1,42 @@
-#sqoop
-kinit -k -t cisetl1b.keytab  cisetl1b@SAMBA-TEST.TH
+#readme.md
+##**********************************************************************************************************##
+## Script Name  : profile.env                                                                              ##
+## Description  : TGW Script Environment Configuration (Set environment variables here).                     ##
+## Creator      : Cheewaphat Loy/True IT.                                                                                ##
+## Created Date : 2017-09-11                                                                                ##
+##**********************************************************************************************************##
+## set -x                                    # For debug only.
 
-hadoop fs -rm /user/cisetl1b/sqoop_import/SQOOP_TEDW_BSNS_INTRACN_SR/*
-hadoop fs -rmdir /user/cisetl1b/sqoop_import/SQOOP_TEDW_BSNS_INTRACN_SR
-
-sqoop import 
--Dhadoop.security.credential.provider.path=jceks://hdfs/user/cisetl1b/sqoop_import/sqoop_config/sqoop_Oracle_TEDW.pwd.jceks --connect jdbc:oracle:thin:@'(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=172.19.196.25)(PORT=1550))(ADDRESS=(PROTOCOL=TCP)(HOST=172.19.196.26)(PORT=1550))(ADDRESS=(PROTOCOL=TCP)(HOST=172.19.196.27)(PORT=1550))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=TEDWDEV)))' --username "TEDWDWHAPPB" --password-alias TEDWdb.password.alias --table "TEDWDWHAPPO.BSNS_INTRACN_SR" --columns "BSNS_INTRACN_KEY,BSNS_INTRACN_ID" --target
--dir "/user/cisetl1b/sqoop_import/SQOOP_TEDW_BSNS_INTRACN_SR" --verbose
-
-result=`${ORACLE_HOME}/bin/sqlplus -s ${ORA_USERNAME}/${ORA_PASSWORD}@${ORA_SERVER}:${ORA_PORT}/${ORA_SERVICE_NAME}
+# ORACLE CLIENT PATH
+ORACLE_HOME=/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/client64_1
+LD_LIBRARY_PATH=/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/client64_1/lib
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/
 
 
-TRAILING NULLCOLS( 
-    ODS_PPN_BY constant "TEST_BY_JOE", 
-    ODS_ACTION constant "I", 
-) 
+
+
+## FLUME
+กระเทยหวานชอล
+
+
+## INFORMATICA SERVER
+แต่เป้น linux เหมือนกัน 
+4:56:46 PM: Teerapong Chaiyadet/True Corp: แต่ถ้าให้พี่เดา ของ โจ้มันเป้นแนว real time น่าจะได้เอาไปรันที่เครือ่ง informatic v.9 
+4:56:53 PM: Teerapong Chaiyadet/True Corp: version 9.5 
+
+-------- DEV --------
+172.19.195.91
+u:pwcadmin
+p:P@ssw0rd
+ 
+4:57:59 PM: Teerapong Chaiyadet/True Corp: version 9.5 
+
+-------- DEV --------
+172.19.195.91
+u:pwcadmin
+p:P@ssw0rd
+ 
+4:58:21 PM: Teerapong Chaiyadet/True Corp: ตัวนี้เป้น user กลาง 
+
+
+

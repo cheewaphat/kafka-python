@@ -1,28 +1,66 @@
 #!/bin/bash
-. ${HOME}/.bash_profile
-PATH_LOG="/tmp/workspace/kafka-python/"
-PATH_CFG="/cisapp/cisetl_apps1/lcisetl1b/workspace/kafka-python/config/"
-APP_PY="dev-main.py"
-mkdir -p "${PATH_LOG%/}"
+. /cisapp/cisetl_apps1/lcisetl1b/workspace/TGW_MSISDN/profile.env
 
-exec > >(tee -i ${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log)
-exec 2>&1
-
-PID=$$
 CURR_DIR="$( cd "$( dirname "${0}" )" && pwd )"
 CURR_USER="$(whoami)"
+PATH_TMP="/tmp/workspace/`basename ${CURR_DIR%/}`"
+PATH_LOG="/tmp/workspace/`basename ${CURR_DIR%/}`/log"
+PATH_CFG="${CURR_DIR%/}/config/"
+APP_PY="main.py"
+PID=$$
 
+#export to env path for main.py APP
+export PATH_TMP
+export PATH_LOG
 
+mkdir -p "${PATH_LOG%/}"
+
+if [ ! -f "${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log" ] ; then
+    mv "${PATH_LOG%/}/`basename $0`.log" "${PATH_LOG%/}/`basename $0`-`date +"%Y%m%d"`.log"
+fi
+
+exec > >(tee -i ${PATH_LOG%/}/`basename $0`.log)
+exec 2>&1
+
+function status()
+{
+    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $5}' | uniq
+}
 
 function stop()
 {
-    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9
+    ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 }
 
-function start()
+function repair()
 {
+    local topic=$1    
     local _cfg="${CURR_DIR%/}/config/"
-    local _tmpout="${CURR_DIR%/}/found-cfg.out"
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
+
+    if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
+        echo "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
+        exit 1
+    fi
+
+    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
+    cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest"
+    eval "${cmd} &"
+    RUN_PID=$!
+    echo "Repair topic [${RUN_PID}] : ${topic}"
+    echo $RUN_PID>>"${_pid}"
+
+    # kill ps
+    sleep 299
+    kill -9 `cat "${_pid}"` && rm "${_pid}"
+}
+
+function repair_all()
+{
+
+    local _cfg="${CURR_DIR%/}/config/"
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
     ls ${_cfg%/}/*.ini > "${_tmpout}"
     echo ""
     echo "`date '+%Y-%m-%d %H:%M:%S'` lookup *.ini in ${_cfg%/}"    
@@ -31,10 +69,53 @@ function start()
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="python ${CURR_DIR%/}/$APP_PY  ${_cfg%/}/${filename%.*}.ini"
+        cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest"
 
-        #check process
-        if [ `ps -ef | grep "$cmd" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        #check process	    
+        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Process is still running , $cmd"
+            continue 
+        fi
+        
+        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+            eval "$cmd &" 
+            pid=$!
+            echo "`date '+%Y-%m-%d %H:%M:%S'` Call :PID:$pid:$cmd"
+            echo $pid>>"${_pid}"
+            sleep 1
+        else 
+            echo "`date '+%Y-%m-%d %H:%M:%S'` file format invalide"
+        fi
+        
+    done < "$_tmpout"
+    rm "${_tmpout}"
+
+    #clear temp
+    remove_archive
+
+    # kill ps
+    sleep 299
+    kill -9 `cat "${_pid}"` && rm "${_pid}"
+
+}
+
+function start()
+{
+
+    local _cfg="${CURR_DIR%/}/config/"
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+    ls ${_cfg%/}/*.ini > "${_tmpout}"
+    echo ""
+    echo "`date '+%Y-%m-%d %H:%M:%S'` lookup *.ini in ${_cfg%/}"    
+    echo "`date '+%Y-%m-%d %H:%M:%S'` found `wc -l "$_tmpout"`"
+    
+    while IFS='' read -r line || [[ -n "$line" ]]; do
+        filename=$(basename "$line")        
+        extension="${filename##*.}"        
+        cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/${filename%.*}.ini"
+
+        #check process	    
+        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
             echo "`date '+%Y-%m-%d %H:%M:%S'` Process is still running , $cmd"
             continue 
         fi
@@ -49,6 +130,7 @@ function start()
         fi
         
     done < "$_tmpout"
+    rm "${_tmpout}"
 
     #clear temp
     remove_archive
@@ -57,8 +139,8 @@ function start()
 
 function remove_archive()
 {
-    find /tmp/workspace/kafka-python/ -type f -atime +7 -exec rm -f {} \; -print
-    find /tmp/workspace/kafka-python/ -type d -atime +7 -exec rm -rf {} \; -print
+    find "${PATH_TMP%/}" -type f -atime +7 -exec rm -f {} \; -print
+    find "${PATH_TMP%/}" -type d -atime +7 -exec rm -rf {} \; -print
 }
 
 
@@ -66,18 +148,34 @@ function remove_archive()
 case "$1" in 
     start)
        start
-       ;;
+        ;;
     stop)
        stop
-       ;;
+        ;;
     restart)
        stop
        start
-       ;;
+        ;;
     status)
-       ps -eo pid,args | grep $APP_PY | grep -v grep | awk '{print $4}' | uniq
-       ;;
+       status
+        ;;
+    repair)
+        if [ -z $2 ];then
+            echo "press enter \"topic\""
+            exit 1
+        fi
+
+        if [ ${2,,} == "all" ]; then
+            repair_all $2
+        else
+            repair $2
+        fi
+
+        
+        ;;
     *)
-       echo "Usage: $0 {start|stop|status|restart}"
+       echo "Usage: $0 {start|stop|status|restart|repair}"
+       sleep 5
+       exit 0;
 esac
 exit 0 

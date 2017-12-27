@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="c821b30d-6e53-46bb-a405-0d01a984b940" name="Default" comment="">
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.covrc" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.gitignore" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.gitmodules" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.travis.yml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/AUTHORS.md" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/CHANGES.md" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/LICENSE" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/MANIFEST.in" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/Makefile" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/README.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/README" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/consumer_performance.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/load_example.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/producer_performance.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/record_batch_compose.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/benchmarks/record_batch_read.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/build_integration.sh" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/consumer-listener.dev.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/consumer-log.dev.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/consumer.dev-ccp-1001.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/dev-consumer-deploy.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/dev-consumer-main.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/dev-consumer.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/dev-main.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/Makefile" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/BrokerConnection.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/ClusterMetadata.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/KafkaClient.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/KafkaConsumer.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/KafkaProducer.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/SimpleProducer.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.consumer.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.coordinator.assignors.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.coordinator.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.partitioner.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.producer.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.protocol.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/kafka.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/apidoc/modules.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/changelog.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/compatibility.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/conf.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/index.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/install.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/license.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/make.bat" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/requirements.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/simple.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/support.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/tests.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/docs/usage.rst" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/install_oracle_cx.md" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/LICENSE" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/README.md" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/json_to_csv.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/samples/sample.csv" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/samples/sample.json" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/samples/sample_2.csv" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/json-to-csv/samples/sample_2.json" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/kafka-consumer-topic.log" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/main.cron" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/mapper.cfg" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/ora_conn.sh" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/ora_log.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/cx_Oracle" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/bind_insert.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/bind_insert.sql" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/bind_query.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/connect.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/connect_drcp.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/plsql_func.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/plsql_func.sql" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/plsql_proc.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/plsql_proc.sql" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query_all.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query_arraysize.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query_arraysize.sql" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query_many.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/oracle/test/query_one.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/parsersql.py.bak.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/pylint.rc" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/requirements-dev.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/run_kafka.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/setup.cfg" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/setup.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/__init__.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/conftest.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/fixtures.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/record/test_legacy_records.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/record/test_records.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/service.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_assignors.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_buffer.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_client.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_client_async.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_client_integration.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_codec.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_conn.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_consumer.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_consumer_group.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_consumer_integration.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_context.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_coordinator.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_failover_integration.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_fetcher.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_metrics.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_package.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_partitioner.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_producer.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_producer_integration.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_producer_legacy.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_protocol.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_protocol_legacy.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_sender.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_substription_state.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/test_util.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/test/testutil.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/tgw_ccp_dev.ctl" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/tox.ini" afterPath="" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="example.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/example.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="12" column="8" lean-forward="false" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
+              <folding>
+                <element signature="e#22#53#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="main.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/main.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="238">
+              <caret line="21" column="39" lean-forward="false" selection-start-line="21" selection-start-column="39" selection-end-line="21" selection-end-column="39" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ijson.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/ijson.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="187">
+              <caret line="11" column="76" lean-forward="true" selection-start-line="11" selection-start-column="76" selection-end-line="11" selection-end-column="76" />
+              <folding>
+                <element signature="e#39#48#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="__init__.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/kafka/__init__.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="748">
+              <caret line="44" column="2" lean-forward="false" selection-start-line="44" selection-start-column="2" selection-end-line="44" selection-end-column="58" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Setup Script" />
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1346" />
+    <option name="height" value="688" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>Python</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>PyCompatibilityInspection</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="TGW_MSISDN" type="b2602c69:ProjectViewProjectNode" />
+              <item name="TGW_MSISDN" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="TGW_MSISDN" type="b2602c69:ProjectViewProjectNode" />
+              <item name="TGW_MSISDN" type="462c0819:PsiDirectoryNode" />
+              <item name="plungin" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="TGW_MSISDN" type="b2602c69:ProjectViewProjectNode" />
+              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c821b30d-6e53-46bb-a405-0d01a984b940" name="Default" comment="" />
+      <created>1509593710556</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1509593710556</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-8" y="-8" width="1382" height="744" extended-state="6" />
+    <layout>
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24304539" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager />
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/example.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="12" column="8" lean-forward="false" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
+          <folding>
+            <element signature="e#22#53#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="238">
+          <caret line="21" column="39" lean-forward="true" selection-start-line="21" selection-start-column="39" selection-end-line="21" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kafka/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="748">
+          <caret line="44" column="2" lean-forward="false" selection-start-line="44" selection-start-column="2" selection-end-line="44" selection-end-column="58" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ijson.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="34">
+          <caret line="4" column="22" lean-forward="true" selection-start-line="4" selection-start-column="22" selection-end-line="4" selection-end-column="22" />
+          <folding>
+            <element signature="e#39#48#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/example.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="12" column="8" lean-forward="false" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
+          <folding>
+            <element signature="e#22#53#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="238">
+          <caret line="21" column="39" lean-forward="false" selection-start-line="21" selection-start-column="39" selection-end-line="21" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kafka/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="748">
+          <caret line="44" column="2" lean-forward="false" selection-start-line="44" selection-start-column="2" selection-end-line="44" selection-end-column="58" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plungin/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ijson.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="76" lean-forward="true" selection-start-line="11" selection-start-column="76" selection-end-line="11" selection-end-column="76" />
+          <folding>
+            <element signature="e#39#48#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

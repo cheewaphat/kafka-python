@@ -7,8 +7,17 @@ import sched
 log = logging.getLogger(__name__)
 
 class OracleLoader(threading.Thread):     
-    daemon = True
+    # daemon = True
     run_on = 300 # sec
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.stop_event = threading.Event()
+        logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
+        logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
+        
+    def stop(self):
+        self.stop_event.set()
 
     def set_config(self,path):       
         if not os.path.exists(path):
@@ -16,6 +25,7 @@ class OracleLoader(threading.Thread):
             return False
 
         self.currentdate= datetime.date.today().strftime('%Y%m%d')        
+        self.currentdatetime= datetime.datetime.now().strftime('%Y%m%d%H%M%S')   
         self.pid = os.getpid()   
         # self.dir_ldr    = "/tmp/workspace/kafka-python/ldr/%s" % self.currentdate  
         config = ConfigParser.ConfigParser()
@@ -24,8 +34,20 @@ class OracleLoader(threading.Thread):
         logging.info( "Loader config .ini = %s" % path )      
 
     def set_env(self):        
-        os.putenv('ORACLE_HOME', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/') 
-        os.putenv('LD_LIBRARY_PATH', '/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/') 
+        if not os.getenv("ORACLE_HOME"):            
+            logging.info("NOT ORACLE_HOME")
+            # os.putenv("ORACLE_HOME", "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/") 
+            os.environ["ORACLE_HOME"] = "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/"
+
+        if not os.getenv("LD_LIBRARY_PATH"):
+            logging.info("NOT LD_LIBRARY_PATH")
+            # os.putenv("LD_LIBRARY_PATH", "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/") 
+            os.environ["LD_LIBRARY_PATH"] = "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/"
+
+        logging.info("Set Oracle ENV." )
+        logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
+        logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
+
 
     def set_source_dir(self,src):
         self.source_dir = src
@@ -36,11 +58,11 @@ class OracleLoader(threading.Thread):
             os.makedirs(path)
 
         self.dir_ldr = path
-        self.file_ctrl  = "{}/{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_data  = "{}/{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_bad   = "{}/{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )     
-        self.file_dsc   = "{}/{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
-        self.file_log   = "{}/{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid )
+        self.file_ctrl  = "{}/{}_{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_data  = "{}/{}_{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_bad   = "{}/{}_{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
+        self.file_dsc   = "{}/{}_{}_{}.dsc".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )
+        self.file_log   = "{}/{}_{}_{}.log".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )
         logging.info("Temp Loader path : %s" % self.dir_ldr )
 
     def dir_exists(self,filepath):
@@ -55,11 +77,12 @@ class OracleLoader(threading.Thread):
             return ""
         return data
 
-    def clean(self):                
+    def clean(self):       
+        #self.file_bad         
+        #self.file_log
         files = [
             self.file_ctrl,
-            self.file_data,
-            self.file_bad,
+            self.file_data,            
             self.file_dsc
         ]
 
@@ -71,9 +94,9 @@ class OracleLoader(threading.Thread):
     def prepare(self):                
         datafile = "%s/%s.csv" % (self.source_dir, self.config.get('kafka','topic') )
         if not os.path.exists(datafile):
-            logging.info("no data file %s" % datafile )
+            # logging.info("no data file %s" % datafile )
             return False
-        
+        logging.info("data file %s" % datafile )
         if not os.path.exists(self.dir_ldr):
             os.makedirs(self.dir_ldr)
             
@@ -151,29 +174,35 @@ class OracleLoader(threading.Thread):
         ctlfile = self.file_ctrl
         if not os.path.exists(ctlfile):
             logging.info("Control file not exists %s" % ctlfile)
+            return False                        
+
+        try:
+            self.oracle_conf = {            
+                "home":os.getenv('ORACLE_HOME').strip("/"),
+                "username":self.config.get('target','username'),
+                "password":self.config.get('target','password'),
+                "server":self.config.get('target','server'),
+                "port":self.config.get('target','port'),
+                "service_name":self.config.get('target','schema'),
+                "log_file":self.file_log,
+                "control_file":ctlfile
+            }
+            
+            self.cmd_ldr='/{ora[home]}/bin/sqlldr userid={ora[username]}/{ora[password]}@{ora[server]}:{ora[port]}/{ora[service_name]} control={ora[control_file]}  log={ora[log_file]}'.format(ora=self.oracle_conf)        
+            subprocess.call(self.cmd_ldr, shell=True)
+            logging.info("Command loader : %s" % self.cmd_ldr)
+            return True
+        except :
+            e = sys.exc_info()[0]                        
+            logging.error("Call fail : sqlldr [%s]" % e)    
             return False
-
-        self.oracle_conf = {            
-            "home":os.getenv('ORACLE_HOME').strip("/"),
-            "username":self.config.get('target','username'),
-            "password":self.config.get('target','password'),
-            "server":self.config.get('target','server'),
-            "port":self.config.get('target','port'),
-            "service_name":self.config.get('target','schema'),
-            "log_file":self.file_log,
-            "control_file":ctlfile
-        }                
         
-        self.cmd_ldr='/{ora[home]}/bin/sqlldr userid={ora[username]}/{ora[password]}@{ora[server]}:{ora[port]}/{ora[service_name]} control={ora[control_file]}  log={ora[log_file]}'.format(ora=self.oracle_conf)        
-        subprocess.call(self.cmd_ldr, shell=True)
-        logging.info("Command loader : %s" % self.cmd_ldr)
 
-    def run(self):
-        logging.info("Run Loader")
-        self.set_env()   
-        
-        while True:
+    def run(self):        
+        self.set_env()                   
+        while not self.stop_event.is_set():
             if self.prepare():
+                logging.info("Run Loader")
                 self.make_ctl_file() 
                 self.call_loader()
                 self.clean()

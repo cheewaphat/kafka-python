@@ -1,0 +1,12 @@
+{
+    "EventBeginTime": "2017-12-17 10-16-25",
+    "EventType": "1005",
+    "MSISDN": "66644523783",
+    "NotificationID": "15134805857281473991458",
+    "parameters": {
+        "ChainID": "1",
+        "IMSI": "520002035745803",
+        "Language": "1",
+        "SubscriberPricePlanCode": "R16NCB4G1"
+    }
+}

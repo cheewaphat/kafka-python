@@ -23,6 +23,10 @@ from kafka.structs import TopicPartition, OffsetAndTimestamp
 log = logging.getLogger(__name__)
 
 
+# Isolation levels
+READ_UNCOMMITTED = 0
+READ_COMMITTED = 1
+
 ConsumerRecord = collections.namedtuple("ConsumerRecord",
     ["topic", "partition", "offset", "timestamp", "timestamp_type",
      "key", "value", "checksum", "serialized_key_size", "serialized_value_size"])
@@ -81,7 +85,7 @@ class Fetcher(six.Iterator):
                 performs fetches to multiple brokers in parallel so memory
                 usage will depend on the number of brokers containing
                 partitions for the topic.
-                Supported Kafka version >= 0.10.1.0. Default: 52428800 (50 Mb).
+                Supported Kafka version >= 0.10.1.0. Default: 52428800 (50 MB).
             max_partition_fetch_bytes (int): The maximum amount of data
                 per-partition the server will return. The maximum total memory
                 used for a request = #partitions * max_partition_fetch_bytes.
@@ -114,6 +118,7 @@ class Fetcher(six.Iterator):
         self._iterator = None
         self._fetch_futures = collections.deque()
         self._sensors = FetchManagerMetrics(metrics, self.config['metric_group_prefix'])
+        self._isolation_level = READ_UNCOMMITTED
 
     def send_fetches(self):
         """Send FetchRequests for all assigned partitions that do not already have
@@ -473,8 +478,8 @@ class Fetcher(six.Iterator):
         # caught by the generator. We want all exceptions to be raised
         # back to the user. See Issue 545
         except StopIteration as e:
-            log.exception('StopIteration raised unpacking messageset: %s', e)
-            raise Exception('StopIteration raised unpacking messageset')
+            log.exception('StopIteration raised unpacking messageset')
+            raise RuntimeError('StopIteration raised unpacking messageset')
 
     def __iter__(self):  # pylint: disable=non-iterator-returned
         return self
@@ -669,8 +674,13 @@ class Fetcher(six.Iterator):
                 fetchable[node_id][partition.topic].append(partition_info)
                 log.debug("Adding fetch request for partition %s at offset %d",
                           partition, position)
+            else:
+                log.log(0, "Skipping fetch for partition %s because there is an inflight request to node %s",
+                        partition, node_id)
 
-        if self.config['api_version'] >= (0, 10, 1):
+        if self.config['api_version'] >= (0, 11, 0):
+            version = 4
+        elif self.config['api_version'] >= (0, 10, 1):
             version = 3
         elif self.config['api_version'] >= (0, 10):
             version = 2
@@ -696,12 +706,21 @@ class Fetcher(six.Iterator):
                 #       dicts retain insert order.
                 partition_data = list(partition_data.items())
                 random.shuffle(partition_data)
-                requests[node_id] = FetchRequest[version](
-                    -1,  # replica_id
-                    self.config['fetch_max_wait_ms'],
-                    self.config['fetch_min_bytes'],
-                    self.config['fetch_max_bytes'],
-                    partition_data)
+                if version == 3:
+                    requests[node_id] = FetchRequest[version](
+                        -1,  # replica_id
+                        self.config['fetch_max_wait_ms'],
+                        self.config['fetch_min_bytes'],
+                        self.config['fetch_max_bytes'],
+                        partition_data)
+                else:
+                    requests[node_id] = FetchRequest[version](
+                        -1,  # replica_id
+                        self.config['fetch_max_wait_ms'],
+                        self.config['fetch_min_bytes'],
+                        self.config['fetch_max_bytes'],
+                        self._isolation_level,
+                        partition_data)
         return requests
 
     def _handle_fetch_response(self, request, send_time, response):
@@ -822,17 +841,12 @@ class Fetcher(six.Iterator):
 
         return parsed_records
 
-    class PartitionRecords(object):
+    class PartitionRecords(six.Iterator):
         def __init__(self, fetch_offset, tp, messages):
             self.fetch_offset = fetch_offset
             self.topic_partition = tp
             self.messages = messages
-            # When fetching an offset that is in the middle of a
-            # compressed batch, we will get all messages in the batch.
-            # But we want to start 'take' at the fetch_offset
-            for i, msg in enumerate(messages):
-                if msg.offset == fetch_offset:
-                    self.message_idx = i
+            self.message_idx = 0
 
         # For truthiness evaluation we need to define __len__ or __nonzero__
         def __len__(self):

@@ -64,7 +64,7 @@ class ParserCSV(object):
                 writer = csv.DictWriter(outfile, fieldnames=self._data_header,delimiter='|',quoting=csv.QUOTE_MINIMAL)                
                 # writer.writeheader()            
                 writer.writerow(self._map_rows)            
-                logging.info( "Done " )
+                logging.info( "Parser CSV done !!" )
 
         except :
             e = sys.exc_info()[0]            

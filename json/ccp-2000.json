@@ -1,0 +1,16 @@
+{
+    "EventBeginTime": "2017-12-22 03-02-51",
+    "EventType": "2000",
+    "MSISDN": "66885823690",
+    "NotificationID": "15138865712961482348204",
+    "parameters": {
+        "AccountType": "Pre",
+        "Amount": "-1000",
+        "ChainID": "1",
+        "Language": "2",
+        "MessageType": "12",
+        "ServiceType": "1",
+        "SubscriberPricePlanCode": "R14NWDF12",
+        "TransacionSN": "1513885646760"
+    }
+}

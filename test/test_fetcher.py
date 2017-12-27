@@ -54,7 +54,7 @@ def _build_record_batch(msgs, compression=0):
         magic=1, compression_type=0, batch_size=9999999)
     for msg in msgs:
         key, value, timestamp = msg
-        builder.append(key=key, value=value, timestamp=timestamp)
+        builder.append(key=key, value=value, timestamp=timestamp, headers=[])
     builder.close()
     return builder.buffer()
 
@@ -301,29 +301,6 @@ def test__handle_offset_response(fetcher, mocker):
     fetcher._handle_offset_response(fut, res)
     assert fut.failed()
     assert isinstance(fut.exception, NotLeaderForPartitionError)
-
-
-def test_partition_records_offset():
-    """Test that compressed messagesets are handled correctly
-    when fetch offset is in the middle of the message list
-    """
-    batch_start = 120
-    batch_end = 130
-    fetch_offset = 123
-    tp = TopicPartition('foo', 0)
-    messages = [ConsumerRecord(tp.topic, tp.partition, i,
-                               None, None, 'key', 'value', 'checksum', 0, 0)
-                for i in range(batch_start, batch_end)]
-    records = Fetcher.PartitionRecords(fetch_offset, None, messages)
-    assert len(records) > 0
-    msgs = records.take(1)
-    assert msgs[0].offset == 123
-    assert records.fetch_offset == 124
-    msgs = records.take(2)
-    assert len(msgs) == 2
-    assert len(records) > 0
-    records.discard()
-    assert len(records) == 0
 
 
 def test_fetched_records(fetcher, topic, mocker):
