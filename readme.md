@@ -16,7 +16,7 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/
 
 
 ## FLUME
-กระเทยหวานชอล
+
 
 
 ## INFORMATICA SERVER
