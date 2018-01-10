@@ -178,6 +178,7 @@ function remove_archive()
 {
     log_inf "check remove archive on ${PATH_TMP%/}"    
     find "${PATH_TMP%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null  
+    find "${PATH_LOG%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null      
 }
 
 function move_log()
