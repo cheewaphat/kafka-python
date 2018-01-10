@@ -40,7 +40,7 @@ function init()
         echo "can't load ${CURR_DIR%/}/lib/logging.bash"
     fi
     exec 3>>"${F_LOG}"
-    exec 3>&1 # show all stderr console
+    # exec 3>&1 # show all stderr console
 
 }
 
