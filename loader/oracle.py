@@ -183,7 +183,7 @@ class OracleLoader(threading.Thread):
                 "password":self.config.get('target','password'),
                 "server":self.config.get('target','server'),
                 "port":self.config.get('target','port'),
-                "service_name":self.config.get('target','schema'),
+                "service_name": self.config.get('target', 'service_name'),
                 "log_file":self.file_log,
                 "control_file":ctlfile
             }
