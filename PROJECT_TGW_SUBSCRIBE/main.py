@@ -2,6 +2,7 @@
 import logging, datetime,time
 import multiprocessing,threading
 import ConfigParser, os, sys ,subprocess
+import socket
 
 from kafka import KafkaConsumer
 from parser import ParserSQL
@@ -29,6 +30,8 @@ class Consumer(multiprocessing.Process):
     def __init__(self):
         multiprocessing.Process.__init__(self)
         self.stop_event = multiprocessing.Event()
+        # self.hostname = socket.gethostname()    
+        # self.hostname  
         
     def stop(self):
         self.stop_event.set()
@@ -59,23 +62,25 @@ class Consumer(multiprocessing.Process):
         
         bootstrap_servers = self.config.get('kafka', 'bootstrap_servers').split(',')
         topic = self.config.get('kafka','topic').split(',')
+        group = self.config.get('kafka', 'group')
+        client_id = "_".join(topic)
         
         consumer = KafkaConsumer(
+            group_id=group,
             max_poll_records= 500,
             max_poll_interval_ms= 300000,
             bootstrap_servers= bootstrap_servers,
             auto_offset_reset= self.auto_offset_reset  
             )        
         consumer.subscribe(topic)          
-        logging.info("Consumer is running subscribe [%s]" % topic)
+        logging.info("Consumer Group[%s] is running subscribe [%s]" % (group,topic) )
 
         while not self.stop_event.is_set():                        
             for msg in consumer:
                 pCSV = ParserCSV(message=msg,config=self.config)   
                 pCSV.out( "%s/%s.csv" %( self.dir_csv, msg.topic ) )
                 if self.stop_event.is_set():
-                    # logging.info("Topic:%s is stop" % topic )
-                    logging.info("")
+                    logging.info("Topic:%s is stop" % topic )                    
                     break
 
         consumer.close()           
@@ -119,7 +124,7 @@ def main():
     for t in threads:
         t.start()
 
-    time.sleep(10)
+    # time.sleep(10)
     
     # for task in threads:
     #     task.stop()

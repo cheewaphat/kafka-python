@@ -64,7 +64,7 @@ class ParserCSV(object):
                 writer = csv.DictWriter(outfile, fieldnames=self._data_header,delimiter='|',quoting=csv.QUOTE_MINIMAL)                
                 # writer.writeheader()            
                 writer.writerow(self._map_rows)            
-                logging.info( "Parser CSV done !!" )
+                logging.info("Parser CSV %s" % self._data_header)
 
         except :
             e = sys.exc_info()[0]            
@@ -75,5 +75,5 @@ class ParserCSV(object):
     def out(self,path=None):
         self.dir_exists(path)        
         self.todo(path)
-        logging.info("out : %s" % path)
+        # logging.info("out : %s" % path)
     

@@ -3,6 +3,7 @@ from __future__ import absolute_import, division
 import collections
 import copy
 import errno
+import io
 import logging
 from random import shuffle, uniform
 
@@ -27,7 +28,7 @@ from kafka.protocol.admin import SaslHandShakeRequest
 from kafka.protocol.commit import OffsetFetchRequest
 from kafka.protocol.metadata import MetadataRequest
 from kafka.protocol.parser import KafkaProtocol
-from kafka.protocol.types import Int32
+from kafka.protocol.types import Int32, Int8
 from kafka.version import __version__
 
 
@@ -38,6 +39,10 @@ if six.PY2:
 log = logging.getLogger(__name__)
 
 DEFAULT_KAFKA_PORT = 9092
+
+SASL_QOP_AUTH = 1
+SASL_QOP_AUTH_INT = 2
+SASL_QOP_AUTH_CONF = 4
 
 try:
     import ssl
@@ -175,6 +180,8 @@ class BrokerConnection(object):
         'receive_buffer_bytes': None,
         'send_buffer_bytes': None,
         'socket_options': [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)],
+        'sock_chunk_bytes': 4096,  # undocumented experimental option
+        'sock_chunk_buffer_count': 1000,  # undocumented experimental option
         'security_protocol': 'PLAINTEXT',
         'ssl_context': None,
         'ssl_check_hostname': True,
@@ -271,7 +278,7 @@ class BrokerConnection(object):
 
     def connect(self):
         """Attempt to connect and return ConnectionState"""
-        if self.state is ConnectionStates.DISCONNECTED:
+        if self.state is ConnectionStates.DISCONNECTED and not self.blacked_out():
             self.last_attempt = time.time()
             next_lookup = self._next_afi_host_port()
             if not next_lookup:
@@ -501,7 +508,7 @@ class BrokerConnection(object):
 
             # The server will send a zero sized message (that is Int32(0)) on success.
             # The connection is closed on failure
-            self._recv_bytes_blocking(4)
+            data = self._recv_bytes_blocking(4)
 
         except ConnectionError as e:
             log.exception("%s: Error receiving reply from server",  self)
@@ -517,43 +524,59 @@ class BrokerConnection(object):
         return future.success(True)
 
     def _try_authenticate_gssapi(self, future):
+        auth_id = self.config['sasl_kerberos_service_name'] + '@' + self.hostname
         gssapi_name = gssapi.Name(
-            self.config['sasl_kerberos_service_name'] + '@' + self.hostname,
+            auth_id,
             name_type=gssapi.NameType.hostbased_service
         ).canonicalize(gssapi.MechType.kerberos)
         log.debug('%s: GSSAPI name: %s', self, gssapi_name)
 
-        # Exchange tokens until authentication either succeeds or fails
-        client_ctx = gssapi.SecurityContext(name=gssapi_name, usage='initiate')
-        received_token = None
+        # Establish security context and negotiate protection level
+        # For reference RFC 2222, section 7.2.1
         try:
+            # Exchange tokens until authentication either succeeds or fails
+            client_ctx = gssapi.SecurityContext(name=gssapi_name, usage='initiate')
+            received_token = None
             while not client_ctx.complete:
                 # calculate an output token from kafka token (or None if first iteration)
                 output_token = client_ctx.step(received_token)
 
+                # pass output token to kafka, or send empty response if the security
+                # context is complete (output token is None in that case)
                 if output_token is None:
-                    continue
-
-                # pass output token to kafka
-                try:
+                    self._send_bytes_blocking(Int32.encode(0))
+                else:
                     msg = output_token
                     size = Int32.encode(len(msg))
                     self._send_bytes_blocking(size + msg)
 
-                    # The server will send a token back. Processing of this token either
-                    # establishes a security context, or it needs further token exchange.
-                    # The gssapi will be able to identify the needed next step.
-                    # The connection is closed on failure.
-                    header = self._recv_bytes_blocking(4)
-                    (token_size,) = struct.unpack('>i', header)
-                    received_token = self._recv_bytes_blocking(token_size)
+                # The server will send a token back. Processing of this token either
+                # establishes a security context, or it needs further token exchange.
+                # The gssapi will be able to identify the needed next step.
+                # The connection is closed on failure.
+                header = self._recv_bytes_blocking(4)
+                (token_size,) = struct.unpack('>i', header)
+                received_token = self._recv_bytes_blocking(token_size)
 
-                except ConnectionError as e:
-                    log.exception("%s: Error receiving reply from server",  self)
-                    error = Errors.ConnectionError("%s: %s" % (self, e))
-                    self.close(error=error)
-                    return future.failure(error)
+            # Process the security layer negotiation token, sent by the server
+            # once the security context is established.
 
+            # unwraps message containing supported protection levels and msg size
+            msg = client_ctx.unwrap(received_token).message
+            # Kafka currently doesn't support integrity or confidentiality security layers, so we
+            # simply set QoP to 'auth' only (first octet). We reuse the max message size proposed
+            # by the server
+            msg = Int8.encode(SASL_QOP_AUTH & Int8.decode(io.BytesIO(msg[0:1]))) + msg[1:]
+            # add authorization identity to the response, GSS-wrap and send it
+            msg = client_ctx.wrap(msg + auth_id.encode(), False).message
+            size = Int32.encode(len(msg))
+            self._send_bytes_blocking(size + msg)
+
+        except ConnectionError as e:
+            log.exception("%s: Error receiving reply from server",  self)
+            error = Errors.ConnectionError("%s: %s" % (self, e))
+            self.close(error=error)
+            return future.failure(error)
         except Exception as e:
             return future.failure(e)
 
@@ -607,6 +630,14 @@ class BrokerConnection(object):
             self._reconnect_backoff /= 1000.0
             log.debug('%s: reconnect backoff %s after %s failures', self, self._reconnect_backoff, self._failures)
 
+    def _close_socket(self):
+        if self._sock:
+            self._sock.close()
+            self._sock = None
+
+    def __del__(self):
+        self._close_socket()
+
     def close(self, error=None):
         """Close socket and fail all in-flight-requests.
 
@@ -620,9 +651,7 @@ class BrokerConnection(object):
             self.state = ConnectionStates.DISCONNECTING
             self.config['state_change_callback'](self)
         self._update_reconnect_backoff()
-        if self._sock:
-            self._sock.close()
-            self._sock = None
+        self._close_socket()
         self.state = ConnectionStates.DISCONNECTED
         self._sasl_auth_future = None
         self._protocol = KafkaProtocol(
@@ -721,19 +750,21 @@ class BrokerConnection(object):
         return responses
 
     def _recv(self):
-        responses = []
-        SOCK_CHUNK_BYTES = 4096
-        while True:
+        """Take all available bytes from socket, return list of any responses from parser"""
+        recvd = []
+        while len(recvd) < self.config['sock_chunk_buffer_count']:
             try:
-                data = self._sock.recv(SOCK_CHUNK_BYTES)
-                # We expect socket.recv to raise an exception if there is not
-                # enough data to read the full bytes_to_read
+                data = self._sock.recv(self.config['sock_chunk_bytes'])
+                # We expect socket.recv to raise an exception if there are no
+                # bytes available to read from the socket in non-blocking mode.
                 # but if the socket is disconnected, we will get empty data
                 # without an exception raised
                 if not data:
                     log.error('%s: socket disconnected', self)
                     self.close(error=Errors.ConnectionError('socket disconnected'))
-                    break
+                    return []
+                else:
+                    recvd.append(data)
 
             except SSLWantReadError:
                 break
@@ -743,27 +774,23 @@ class BrokerConnection(object):
                 log.exception('%s: Error receiving network data'
                               ' closing socket', self)
                 self.close(error=Errors.ConnectionError(e))
-                break
+                return []
             except BlockingIOError:
                 if six.PY3:
                     break
                 raise
 
-            if self._sensors:
-                self._sensors.bytes_received.record(len(data))
+        recvd_data = b''.join(recvd)
+        if self._sensors:
+            self._sensors.bytes_received.record(len(recvd_data))
 
-            try:
-                more_responses = self._protocol.receive_bytes(data)
-            except Errors.KafkaProtocolError as e:
-                self.close(e)
-                break
-            else:
-                responses.extend([resp for (_, resp) in more_responses])
-
-            if len(data) < SOCK_CHUNK_BYTES:
-                break
-
-        return responses
+        try:
+            responses = self._protocol.receive_bytes(recvd_data)
+        except Errors.KafkaProtocolError as e:
+            self.close(e)
+            return []
+        else:
+            return [resp for (_, resp) in responses]  # drop correlation id
 
     def requests_timed_out(self):
         if self.in_flight_requests:

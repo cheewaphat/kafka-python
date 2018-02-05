@@ -8,9 +8,6 @@
 
 CURR_DIR="$( cd "$( dirname "${0}" )" && pwd )"
 CURR_USER="$(whoami)"
-# PATH_TMP="${CURR_DIR%/}/temp/"
-# PATH_LOG="${CURR_DIR%/}/log/"
-# PATH_CFG="${CURR_DIR%/}/config/"
 APP_PY="${CURR_DIR%/}/main.py"
 APP_TOPIC_PY="${CURR_DIR%/}/topics.py"
 RUNTIME=`date "+%Y%m%d%H%M%S"`
@@ -57,10 +54,7 @@ function stop()
 }
 
 function repair()
-{
-    local topic=$1    
-    local _cfg="${CURR_DIR%/}/config/"
-    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
+{    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
 
     if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
         log_error "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
@@ -81,10 +75,7 @@ function repair()
 }
 
 function repair_all()
-{
-
-    local _cfg="${CURR_DIR%/}/config/"
-    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
     ls ${_cfg%/}/*.ini > "${_tmpout}"
     log_inf ""
@@ -138,10 +129,7 @@ function topic_lists()
 }
 
 function start()
-{
-
-    local _cfg="${CURR_DIR%/}/config/"
-    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     ls ${_cfg%/}/*.ini > "${_tmpout}"
     log_inf ""
     log_inf "lookup *.ini in ${_cfg%/}"    

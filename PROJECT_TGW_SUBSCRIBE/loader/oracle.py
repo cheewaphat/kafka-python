@@ -57,7 +57,7 @@ class OracleLoader(threading.Thread):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.dir_ldr = path
+        self.dir_ldr    = path.strip("/")
         self.file_ctrl  = "{}/{}_{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
         self.file_data  = "{}/{}_{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
         self.file_bad   = "{}/{}_{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
@@ -190,11 +190,11 @@ class OracleLoader(threading.Thread):
             
             self.cmd_ldr='/{ora[home]}/bin/sqlldr userid={ora[username]}/{ora[password]}@{ora[server]}:{ora[port]}/{ora[service_name]} control={ora[control_file]}  log={ora[log_file]}'.format(ora=self.oracle_conf)        
             subprocess.call(self.cmd_ldr, shell=True)
-            logging.info("Command loader : %s" % self.cmd_ldr)
+            # logging.info("Command loader : %s" % self.cmd_ldr)
             return True
         except :
             e = sys.exc_info()[0]                        
-            logging.error("Call fail : sqlldr [%s]" % e)    
+            logging.error("Call loader fail : sqlldr [%s]" % e)    
             return False
         
 
