@@ -56,13 +56,13 @@ function stop()
 function repair()
 {    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
 
-    if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
-        log_error "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
+    if [ ! -f "${PATH_CFG%/}/topic_${topic%.*}.ini" ] ;then
+        log_error "No topic configureion ,please check file ${PATH_CFG%/}/topic_${topic%.*}.ini"
         exit 1
     fi
 
-    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
-    cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
+    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${PATH_CFG%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
+    cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
     eval "${cmd}"
     RUN_PID=$!
     log_inf "Repair topic [${RUN_PID}] : ${topic}"
@@ -77,23 +77,23 @@ function repair()
 function repair_all()
 {    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
-    ls ${_cfg%/}/*.ini > "${_tmpout}"
+    ls ${PATH_CFG%/}/*.ini > "${_tmpout}"
     log_inf ""
-    log_inf "lookup *.ini in ${_cfg%/}"    
+    log_inf "lookup *.ini in ${PATH_CFG%/}"    
     log_inf "found `wc -l "$_tmpout"`"
     
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
+        cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
-        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        if [ `ps -ef | grep "${PATH_CFG%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
             log_inf "Process is still running , $cmd"
             continue 
         fi
         
-        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+        if [[ -f "${PATH_CFG%/}/$filename" ]] ; then            
             eval "$cmd &" 
             pid=$!
             log_inf " Call :PID:$pid:$cmd"
@@ -129,24 +129,25 @@ function topic_lists()
 }
 
 function start()
-{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
-    ls ${_cfg%/}/*.ini > "${_tmpout}"
+{    
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+    ls ${PATH_CFG%/}/*.ini > "${_tmpout}"
     log_inf ""
-    log_inf "lookup *.ini in ${_cfg%/}"    
+    log_inf "lookup *.ini in ${PATH_CFG%/}"    
     log_inf "found `wc -l "$_tmpout"`"
     
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini --log_name ${LOG_NAME%.*}_${filename%.*}.log"
+        cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/${filename%.*}.ini --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
-        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        if [ `ps -ef | grep "${PATH_CFG%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
             log_inf "Process is still running , $cmd"
             continue 
         fi
         
-        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+        if [[ -f "${PATH_CFG%/}/$filename" ]] ; then            
             eval "$cmd &" 
             pid=$!
             log_inf "Call :PID:$pid:$cmd"
