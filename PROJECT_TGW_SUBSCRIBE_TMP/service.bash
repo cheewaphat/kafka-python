@@ -20,9 +20,10 @@ LOG_NAME="TGW_KAFKA.log"
 
 function init()
 {
-    #export to env path for main.py APP
-    export PATH_TMP
-    export PATH_LOG
+    if [ -z "${PATH_TMP}" ] || [ -z "${PATH_LOG}" ] || [ -z "${PATH_CFG}" ] ; then
+        echo "Env. path has not exists !!!"
+        exit 1
+    fi
 
     mkdir -p "${PATH_LOG%/}"
     mkdir -p "${PATH_TMP%/}"
@@ -36,7 +37,7 @@ function init()
     if [ $? -eq 1 ] ; then
         echo "can't load ${CURR_DIR%/}/lib/logging.bash"
     fi
-    #exec 3>>"${F_LOG}"
+    # exec 3>>"${F_LOG}"
     exec 2>&1 # show all stderr console
 
 }
@@ -60,8 +61,7 @@ function repair()
         log_error "No topic configureion ,please check file ${PATH_CFG%/}/topic_${topic%.*}.ini"
         exit 1
     fi
-
-    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${PATH_CFG%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
+    
     cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
     eval "${cmd}"
     RUN_PID=$!
@@ -75,7 +75,8 @@ function repair()
 }
 
 function repair_all()
-{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+{    
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
     ls ${PATH_CFG%/}/*.ini > "${_tmpout}"
     log_inf ""
