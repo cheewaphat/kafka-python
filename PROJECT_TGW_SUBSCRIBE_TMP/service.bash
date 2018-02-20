@@ -170,8 +170,8 @@ function remove_archive()
     log_inf "remove archive/log on ${PATH_TMP%/} / ${PATH_LOG%/}"    
     find "${PATH_TMP%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null 
     find "${PATH_LOG%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null   
-    find "${PATH_LOG%/}" -type f -size +10M -print0 2>/dev/null | while read -d '' -r file; do
-        log_inf "clear size over 10M to 0 byte $file"
+    find "${PATH_LOG%/}" -type f -size +${LOG_MAXSIZE} -print0 2>/dev/null | while read -d '' -r file; do
+        log_inf "clear size over ${LOG_MAXSIZE} to 0 byte $file"
         cat /dev/null > $file ; 
         echo -e "\n\nClear log [`date +"%F %T"`]\n\n" > $file ; 
     done;
