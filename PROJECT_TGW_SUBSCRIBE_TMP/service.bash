@@ -173,6 +173,7 @@ function remove_archive()
     find "${PATH_LOG%/}" -type f -size +10M -print0 2>/dev/null | while read -d '' -r file; do
         log_inf "clear size over 10M to 0 byte $file"
         cat /dev/null > $file ; 
+        echo -e "\n\nClear log [`date +"%F %T"`]\n\n" > $file ; 
     done;
 }
 
