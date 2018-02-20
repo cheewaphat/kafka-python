@@ -11,9 +11,7 @@ class ParserCSV(object):
     """Parse CSV"""
     count = 0
 
-    def __init__(self,message=None,config=None):
-        # logging.info("Start Parse CSV")
-        logging.info("")
+    def __init__(self,message=None,config=None):        
         self._currentdate= datetime.date.today()
         self._consumer_msg = message       
         self._config = config        
@@ -65,7 +63,8 @@ class ParserCSV(object):
                 writer = csv.DictWriter(outfile, fieldnames=self._data_header,delimiter='|',quoting=csv.QUOTE_MINIMAL)                
                 # writer.writeheader()            
                 writer.writerow(self._map_rows)            
-                logging.info("Parser CSV %s" % self._data_header)
+                logging.info("Parser CSV-Header %s" % self._data_header)
+                logging.info("Parser CSV-Data %s" % self._map_rows)
 
         except :
             e = sys.exc_info()[0]            
