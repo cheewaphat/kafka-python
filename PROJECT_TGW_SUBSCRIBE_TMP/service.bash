@@ -55,7 +55,8 @@ function stop()
 }
 
 function repair()
-{    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
+{    
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
 
     if [ ! -f "${PATH_CFG%/}/topic_${topic%.*}.ini" ] ;then
         log_error "No topic configureion ,please check file ${PATH_CFG%/}/topic_${topic%.*}.ini"
@@ -82,11 +83,11 @@ function repair_all()
     log_inf ""
     log_inf "lookup *.ini in ${PATH_CFG%/}"    
     log_inf "found `wc -l "$_tmpout"`"
-    
+    sleep 2
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
+        cmd="$CMD_PYTHON $APP_PY -c ${PATH_CFG%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
         if [ `ps -ef | grep "${PATH_CFG%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
@@ -169,6 +170,10 @@ function remove_archive()
     log_inf "remove archive/log on ${PATH_TMP%/} / ${PATH_LOG%/}"    
     find "${PATH_TMP%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null 
     find "${PATH_LOG%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null   
+    find "${PATH_LOG%/}" -type f -size +10M -print0 2>/dev/null | while read -d '' -r file; do
+        log_inf "clear size over 10M to 0 byte $file"
+        cat /dev/null > $file ; 
+    done;
 }
 
 function move_log()

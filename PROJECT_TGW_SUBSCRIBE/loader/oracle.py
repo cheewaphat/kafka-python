@@ -44,9 +44,15 @@ class OracleLoader(threading.Thread):
             # os.putenv("LD_LIBRARY_PATH", "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/") 
             os.environ["LD_LIBRARY_PATH"] = "/opt/app/oracle/dbhdpmdv1/product/11.2.0.4/dbhome_1/lib/"
 
-        logging.info("Set Oracle ENV." )
-        logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
-        logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
+        if not os.getenv("ORACLE_HOME"):
+            logging.error("can't set ORACLE_HOME")
+            
+        if not os.getenv("LD_LIBRARY_PATH"):
+            logging.error("can't set LD_LIBRARY_PATH")
+
+        # logging.info("Set Oracle ENV." )
+        # logging.info("ORACLE_HOME: %s " % os.getenv('ORACLE_HOME') )
+        # logging.info("LD_LIBRARY_PATH: %s " % os.getenv("LD_LIBRARY_PATH") )
 
 
     def set_source_dir(self,src):
@@ -57,7 +63,7 @@ class OracleLoader(threading.Thread):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.dir_ldr    = path.strip("/")
+        self.dir_ldr    = path.rstrip("/")
         self.file_ctrl  = "{}/{}_{}_{}.ctl".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
         self.file_data  = "{}/{}_{}_{}.dat".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
         self.file_bad   = "{}/{}_{}_{}.bad".format( self.dir_ldr, self.config.get('kafka','topic'), self.pid ,self.currentdatetime )     
@@ -71,10 +77,7 @@ class OracleLoader(threading.Thread):
 
     def get_conf(self,topic,key):
         config = self.config
-        try:
-            data = config.get(topic, key)
-        except (NoSectionError, NoOptionError):
-            return ""
+        data = config.get(topic, key)
         return data
 
     def clean(self):       
@@ -178,7 +181,7 @@ class OracleLoader(threading.Thread):
 
         try:
             self.oracle_conf = {            
-                "home":os.getenv('ORACLE_HOME').strip("/"),
+                "home":os.getenv('ORACLE_HOME').rstrip("/"),
                 "username":self.config.get('target','username'),
                 "password":self.config.get('target','password'),
                 "server":self.config.get('target','server'),

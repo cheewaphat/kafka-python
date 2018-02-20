@@ -38,7 +38,7 @@ class Consumer(multiprocessing.Process):
     def __init__(self):
         multiprocessing.Process.__init__(self)
         self.stop_event = multiprocessing.Event()
-        # self.hostname = socket.gethostname()
+        self.hostname = socket.gethostname()
         # self.hostname
 
     def stop(self):
@@ -67,11 +67,14 @@ class Consumer(multiprocessing.Process):
 
     def run(self):
 
-        bootstrap_servers = self.config.get('kafka', 'bootstrap_servers').split(',')
+        bootstrap_servers = self.config.get(
+            'kafka', 'bootstrap_servers').split(',')
         topic = self.config.get('kafka', 'topic').split(',')
         group = self.config.get('kafka', 'group')
-        client = "_".join(topic)
+        client = "dhw-{}-{}-{}".format(self.hostname,
+                                       "_".join(topic), self.pid)
 
+        logging.info("client  %s : %s " % (client , group ))
         consumer = KafkaConsumer(
             client_id=client,
             group_id=group,
@@ -82,7 +85,7 @@ class Consumer(multiprocessing.Process):
         )
         consumer.subscribe(topic)
         logging.info(
-            "Consumer Group[%s] is running subscribe [%s]" % (group, topic))
+            "Consumer [%s:%s] is running subscribe [%s]" % (group, client, topic))
 
         while not self.stop_event.is_set():
             for msg in consumer:

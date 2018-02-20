@@ -1,0 +1,28 @@
+2018-01-19 15:18:20,697-root:139952204527424-INFO Loadding config .ini = /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/config/topic_am-91001.ini
+2018-01-19 15:18:20,697-root:139952204527424-INFO /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/tmp//data/20180119/csv
+2018-01-19 15:18:20,697-root:139952204527424-INFO ORACLE_HOME: /opt/app/oracle/hdpidbpr1/product/11.2.0/client_1/ 
+2018-01-19 15:18:20,697-root:139952204527424-INFO LD_LIBRARY_PATH: :/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1//lib:/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1//lib 
+2018-01-19 15:18:20,698-root:139952204527424-INFO Loader config .ini = /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/config/topic_am-91001.ini
+2018-01-19 15:18:20,698-root:139952204527424-INFO Temp Loader path : /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/tmp//ldr/20180119
+2018-01-19 15:18:20,698-root:139952204527424-INFO CSV Source path : /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/tmp//data/20180119/csv
+2018-01-19 15:18:20,699-root:139951988737792-INFO Set Oracle ENV.
+2018-01-19 15:18:20,700-root:139951988737792-INFO ORACLE_HOME: /opt/app/oracle/hdpidbpr1/product/11.2.0/client_1/ 
+2018-01-19 15:18:20,700-root:139951988737792-INFO LD_LIBRARY_PATH: :/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1//lib:/opt/app/oracle/hdpidbpr1/product/11.2.0/client_1//lib 
+2018-01-19 15:18:20,701-kafka.client:139952204527424-INFO Bootstrapping cluster metadata from [('172.19.43.101', 9092, 2), ('172.19.43.100', 9092, 2), ('172.19.43.102', 9092, 2)]
+2018-01-19 15:18:20,702-kafka.conn:139952204527424-INFO <BrokerConnection node_id=bootstrap host=172.19.43.101/172.19.43.101 port=9092>: connecting to 172.19.43.101:9092
+2018-01-19 15:18:20,776-kafka.client:139952204527424-INFO Bootstrap succeeded: found 3 brokers and 110 topics.
+2018-01-19 15:18:20,776-kafka.conn:139952204527424-INFO <BrokerConnection node_id=bootstrap host=172.19.43.101/172.19.43.101 port=9092>: Closing connection. 
+2018-01-19 15:18:20,783-kafka.conn:139952204527424-INFO <BrokerConnection node_id=1 host=mtg1-etgkafka-02/172.19.43.101 port=9092>: connecting to 172.19.43.101:9092
+2018-01-19 15:18:21,993-kafka.conn:139952204527424-INFO Broker version identifed as 0.10.1
+2018-01-19 15:18:21,993-kafka.conn:139952204527424-INFO Set configuration api_version=(0, 10, 1) to skip auto check_version requests on startup
+2018-01-19 15:18:21,994-kafka.coordinator.consumer:139952204527424-WARNING group_id is None: disabling auto-commit.
+2018-01-19 15:18:21,994-kafka.consumer.subscription_state:139952204527424-INFO Updating subscribed topics to: ['am-91001']
+2018-01-19 15:18:21,995-root:139952204527424-INFO Consumer is running subscribe [['am-91001']]
+2018-01-19 15:18:22,001-kafka.consumer.subscription_state:139952204527424-INFO Updated partition assignment: [TopicPartition(topic='am-91001', partition=0), TopicPartition(topic='am-91001', partition=1), TopicPartition(topic='am-91001', partition=2), TopicPartition(topic='am-91001', partition=3), TopicPartition(topic='am-91001', partition=4), TopicPartition(topic='am-91001', partition=5), TopicPartition(topic='am-91001', partition=6), TopicPartition(topic='am-91001', partition=7), TopicPartition(topic='am-91001', partition=8), TopicPartition(topic='am-91001', partition=9)]
+2018-01-19 15:18:22,002-kafka.conn:139952204527424-INFO <BrokerConnection node_id=0 host=mtg1-etgkafka-01/172.19.43.100 port=9092>: connecting to 172.19.43.100:9092
+2018-01-19 15:18:22,129-kafka.conn:139952204527424-INFO <BrokerConnection node_id=2 host=mtg1-etgkafka-03/172.19.43.102 port=9092>: connecting to 172.19.43.102:9092
+2018-01-19 15:18:23,186-root:139952204527424-INFO Start Parse CSV
+2018-01-19 15:18:23,187-root:139952204527424-INFO load schema NRTSTGAPPO
+2018-01-19 15:18:23,187-root:139952204527424-INFO load table NRTSTGAPPO.TGW_AA
+2018-01-19 15:18:23,187-root:139952204527424-INFO Parser CSV done !!
+2018-01-19 15:18:23,188-root:139952204527424-INFO out : /prod1/cisetl_apps3/lcisetl3/PROJECT_TGW_SUBSCRIBE/tmp//data/20180119/csv/am-91001.csv

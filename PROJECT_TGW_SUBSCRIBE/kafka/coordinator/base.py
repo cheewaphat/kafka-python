@@ -10,13 +10,13 @@ import weakref
 
 from kafka.vendor import six
 
-from .heartbeat import Heartbeat
-from .. import errors as Errors
-from ..future import Future
-from ..metrics import AnonMeasurable
-from ..metrics.stats import Avg, Count, Max, Rate
-from ..protocol.commit import GroupCoordinatorRequest, OffsetCommitRequest
-from ..protocol.group import (HeartbeatRequest, JoinGroupRequest,
+from kafka.coordinator.heartbeat import Heartbeat
+from kafka import errors as Errors
+from kafka.future import Future
+from kafka.metrics import AnonMeasurable
+from kafka.metrics.stats import Avg, Count, Max, Rate
+from kafka.protocol.commit import GroupCoordinatorRequest, OffsetCommitRequest
+from kafka.protocol.group import (HeartbeatRequest, JoinGroupRequest,
                             LeaveGroupRequest, SyncGroupRequest)
 
 log = logging.getLogger('kafka.coordinator')
@@ -344,22 +344,24 @@ class BaseCoordinator(object):
     def ensure_active_group(self):
         """Ensure that the group is active (i.e. joined and synced)"""
         with self._lock:
-            if not self.need_rejoin():
-                return
-
-            # call on_join_prepare if needed. We set a flag to make sure that
-            # we do not call it a second time if the client is woken up before
-            # a pending rebalance completes.
-            if not self.rejoining:
-                self._on_join_prepare(self._generation.generation_id,
-                                      self._generation.member_id)
-                self.rejoining = True
-
             if self._heartbeat_thread is None:
                 self._start_heartbeat_thread()
 
             while self.need_rejoin():
                 self.ensure_coordinator_ready()
+
+                # call on_join_prepare if needed. We set a flag
+                # to make sure that we do not call it a second
+                # time if the client is woken up before a pending
+                # rebalance completes. This must be called on each
+                # iteration of the loop because an event requiring
+                # a rebalance (such as a metadata refresh which
+                # changes the matched subscription set) can occur
+                # while another rebalance is still in progress.
+                if not self.rejoining:
+                    self._on_join_prepare(self._generation.generation_id,
+                                          self._generation.member_id)
+                    self.rejoining = True
 
                 # ensure that there are no pending requests to the coordinator.
                 # This is important in particular to avoid resending a pending

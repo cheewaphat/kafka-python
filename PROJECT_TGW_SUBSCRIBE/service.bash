@@ -20,9 +20,10 @@ LOG_NAME="TGW_KAFKA.log"
 
 function init()
 {
-    #export to env path for main.py APP
-    export PATH_TMP
-    export PATH_LOG
+    if [ -z "${PATH_TMP}" ] || [ -z "${PATH_LOG}" ] || [ -z "${PATH_CFG}" ] ; then
+        echo "Env. path has not exists !!!"
+        exit 1
+    fi
 
     mkdir -p "${PATH_LOG%/}"
     mkdir -p "${PATH_TMP%/}"
@@ -36,7 +37,7 @@ function init()
     if [ $? -eq 1 ] ; then
         echo "can't load ${CURR_DIR%/}/lib/logging.bash"
     fi
-    #exec 3>>"${F_LOG}"
+    # exec 3>>"${F_LOG}"
     exec 2>&1 # show all stderr console
 
 }
@@ -54,15 +55,15 @@ function stop()
 }
 
 function repair()
-{    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
+{    
+    local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
 
-    if [ ! -f "${_cfg%/}/topic_${topic%.*}.ini" ] ;then
-        log_error "No topic configureion ,please check file ${_cfg%/}/topic_${topic%.*}.ini"
+    if [ ! -f "${PATH_CFG%/}/topic_${topic%.*}.ini" ] ;then
+        log_error "No topic configureion ,please check file ${PATH_CFG%/}/topic_${topic%.*}.ini"
         exit 1
     fi
-
-    # cmd="python ${CURR_DIR%/}/$APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -t /tmp/workspace/TGW_MSISDN/ -l /tmp/workspace/TGW_MSISDN/ -m earliest"
-    cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
+    
+    cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/topic_${topic%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${topic%.*}.log"
     eval "${cmd}"
     RUN_PID=$!
     log_inf "Repair topic [${RUN_PID}] : ${topic}"
@@ -75,25 +76,26 @@ function repair()
 }
 
 function repair_all()
-{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+{    
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
     local _pid="${CURR_DIR%/}/repair_all-${PID}.out"
-    ls ${_cfg%/}/*.ini > "${_tmpout}"
+    ls ${PATH_CFG%/}/*.ini > "${_tmpout}"
     log_inf ""
-    log_inf "lookup *.ini in ${_cfg%/}"    
+    log_inf "lookup *.ini in ${PATH_CFG%/}"    
     log_inf "found `wc -l "$_tmpout"`"
-    
+    sleep 2
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
+        cmd="$CMD_PYTHON $APP_PY -c ${PATH_CFG%/}/${filename%.*}.ini -m earliest --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
-        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        if [ `ps -ef | grep "${PATH_CFG%/}/${filename%.*}.ini -m earliest" | grep -v grep|  wc -l` -ne 0 ] ;then 
             log_inf "Process is still running , $cmd"
             continue 
         fi
         
-        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+        if [[ -f "${PATH_CFG%/}/$filename" ]] ; then            
             eval "$cmd &" 
             pid=$!
             log_inf " Call :PID:$pid:$cmd"
@@ -129,24 +131,25 @@ function topic_lists()
 }
 
 function start()
-{    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
-    ls ${_cfg%/}/*.ini > "${_tmpout}"
+{    
+    local _tmpout="${CURR_DIR%/}/.found-cfg-${PID}.out"
+    ls ${PATH_CFG%/}/*.ini > "${_tmpout}"
     log_inf ""
-    log_inf "lookup *.ini in ${_cfg%/}"    
+    log_inf "lookup *.ini in ${PATH_CFG%/}"    
     log_inf "found `wc -l "$_tmpout"`"
     
     while IFS='' read -r line || [[ -n "$line" ]]; do
         filename=$(basename "$line")        
         extension="${filename##*.}"        
-        cmd="$CMD_PYTHON $APP_PY  -c ${_cfg%/}/${filename%.*}.ini --log_name ${LOG_NAME%.*}_${filename%.*}.log"
+        cmd="$CMD_PYTHON $APP_PY  -c ${PATH_CFG%/}/${filename%.*}.ini --log_name ${LOG_NAME%.*}_${filename%.*}.log"
 
         #check process	    
-        if [ `ps -ef | grep "${_cfg%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
+        if [ `ps -ef | grep "${PATH_CFG%/}/${filename%.*}.ini" | grep -v grep|  wc -l` -ne 0 ] ;then 
             log_inf "Process is still running , $cmd"
             continue 
         fi
         
-        if [[ -f "${_cfg%/}/$filename" ]] ; then            
+        if [[ -f "${PATH_CFG%/}/$filename" ]] ; then            
             eval "$cmd &" 
             pid=$!
             log_inf "Call :PID:$pid:$cmd"
@@ -167,6 +170,10 @@ function remove_archive()
     log_inf "remove archive/log on ${PATH_TMP%/} / ${PATH_LOG%/}"    
     find "${PATH_TMP%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null 
     find "${PATH_LOG%/}" -type d -mtime +7 -exec rm -rf {} \; -print 2>/dev/null   
+    find "${PATH_LOG%/}" -type f -size +10M -print0 2>/dev/null | while read -d '' -r file; do
+        log_inf "clear size over 10M to 0 byte $file"
+        cat /dev/null > $file ; 
+    done;
 }
 
 function move_log()

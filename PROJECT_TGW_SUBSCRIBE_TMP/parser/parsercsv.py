@@ -31,8 +31,8 @@ class ParserCSV(object):
         self._cfg_schema  =  self._config.get('target','schema')
         self._cfg_table   =  self._config.get('target','table')
         self._cfg_mapper  =  self._config.items('database-mapper') 
-        logging.info("Load schema %s" % self._cfg_schema)
-        logging.info("Load table %s" % self._cfg_table)        
+        # logging.info("Load schema %s" % self._cfg_schema)
+        # logging.info("Load table %s" % self._cfg_table)        
 
     def dir_exists(self,filepath):
         if not os.path.exists(os.path.dirname(filepath)):

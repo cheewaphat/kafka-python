@@ -28,6 +28,6 @@ log() {
     if [ $verbosity -ge $1 ]; then
         datestring=`date +'%Y-%m-%d %H:%M:%S'`
         # Expand escaped characters, wrap at 70 chars, indent wrapped lines
-        echo -e "$datestring $2" | fold -w150 -s | sed '2~1s/^/  /' >&3
+        echo -e "$datestring $2" | fold -w250 -s | sed '2~1s/^/  /' >&3
     fi
 }
